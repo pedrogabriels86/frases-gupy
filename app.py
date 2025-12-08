@@ -13,7 +13,7 @@ from PIL import Image
 # ==============================================================================
 
 # 1. LINK DO FAVICON (Ícone pequeno da aba do navegador)
-FAVICON_URL = "https://urmwvabkikftsefztadb.supabase.co/storage/v1/object/public/imagens/logo_gupy.png.png"
+FAVICON_URL = "https://urmwvabkikftsefztadb.supabase.co/storage/v1/object/public/imagens/favicon.png"
 
 # 2. LINK DA LOGO (Imagem que aparece no menu e no login)
 LOGO_URL = "https://urmwvabkikftsefztadb.supabase.co/storage/v1/object/public/imagens/logo_gupy.png.png"
@@ -336,3 +336,4 @@ else:
                     if check == "QUERO APAGAR TUDO":
                         supabase.table("frases").delete().neq("id", 0).execute()
                         registrar_log(user['username'], "LIMPEZA TOTAL", "Todas as frases foram apagadas"); st.rerun()
+
