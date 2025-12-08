@@ -25,7 +25,7 @@ except: pass
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. CSS "NUCLEAR" (ELIMINAÇÃO TOTAL DE ESPAÇOS)
+# 2. CSS "NUCLEAR" (ELIMINAÇÃO TOTAL DE ESPAÇOS) E MELHORIA DE HEADER
 # ==============================================================================
 st.markdown("""
 <style>
@@ -96,7 +96,7 @@ st.markdown("""
     .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
     .badge-blue { background: #DBEAFE; color: #1E40AF; }
 
-    /* NOVO: CSS para alinhamento do usuário e botão SAIR no header */
+    /* NOVO/AJUSTADO: CSS para alinhamento do usuário e botão SAIR no header */
     .user-info-container {
         display: flex;
         align-items: center; /* Centraliza verticalmente o texto e o botão */
@@ -110,6 +110,15 @@ st.markdown("""
         color: #475569; 
         line-height: 1.2;
     }
+    
+    /* Ajuste para alinhar o st.selectbox e st.text_input na Biblioteca */
+    .stSelectbox div[data-baseweb="select"] {
+        margin-top: 0px !important; 
+    }
+    .stText .stTextInput {
+        margin-bottom: 0px !important;
+    }
+    
 
 </style>
 """, unsafe_allow_html=True)
@@ -199,8 +208,9 @@ else:
     user = st.session_state["usuario_logado"]
     dados_totais = buscar_dados()
     
-    # --- HEADER PROFISSIONAL (NATIVO E ALINHADO) ---
+    # --- HEADER PROFISSIONAL (COM ALINHAMENTO FORÇADO) ---
     with st.container():
+        # Usamos vertical_alignment="center" para alinhar o logo, menu e info do usuário
         c_logo, c_menu, c_user = st.columns([1, 3, 1], vertical_alignment="center")
         
         with c_logo:
@@ -219,7 +229,7 @@ else:
         # AJUSTE DE LAYOUT APLICADO AQUI (Usando Flexbox no CSS)
         # ----------------------------------------------------
         with c_user:
-            # Usamos CSS Flexbox (classe .user-info-container) para alinhar o texto e o botão 'Sair' verticalmente
+            # Aplicamos a classe CSS .user-info-container (display: flex, align-items: center)
             st.markdown(
                 """
                 <div class="user-info-container">
@@ -251,15 +261,26 @@ else:
                     user['trocar_senha'] = False; st.success("Senha atualizada!"); time.sleep(1); st.rerun()
                 else: st.error("Senhas inválidas.")
     else:
-        # PÁGINA: BIBLIOTECA
+        # PÁGINA: BIBLIOTECA (Ajuste de alinhamento da Busca e Filtro)
         if page == "Biblioteca":
             st.subheader("Biblioteca de Frases")
-            with st.container(border=True):
-                c_search, c_filter = st.columns([3, 1], vertical_alignment="bottom")
-                termo = c_search.text_input("Pesquisa Inteligente", placeholder="🔎 Busque por empresa, motivo ou conteúdo...", label_visibility="collapsed")
-                filtro_empresa = c_filter.selectbox("Filtrar Empresa", ["Todas"] + sorted(list(set(d['empresa'] for d in dados_totais))), label_visibility="collapsed")
-                # Adicionado label_visibility="collapsed" no selectbox para alinhamento melhor.
-
+            
+            # Container de busca (sem a borda que estava duplicada)
+            c_search, c_filter = st.columns([3, 1])
+            
+            with c_search:
+                # O selectbox é renderizado primeiro, garantindo alinhamento superior
+                termo = st.text_input("Pesquisa Inteligente", 
+                                    placeholder="🔎 Busque por empresa, motivo ou conteúdo...", 
+                                    label_visibility="collapsed")
+            
+            with c_filter:
+                filtro_empresa = st.selectbox("Filtrar Empresa", 
+                                                ["Todas"] + sorted(list(set(d['empresa'] for d in dados_totais))), 
+                                                label_visibility="collapsed")
+            
+            # Removendo a borda extra do container antigo, deixando a busca limpa
+            
             filtrados = dados_totais
             if filtro_empresa != "Todas": filtrados = [f for f in filtrados if f['empresa'] == filtro_empresa]
             if termo: filtrados = [f for f in filtrados if termo.lower() in str(f).lower()]
