@@ -42,9 +42,14 @@ st.markdown("""
 
     /* REDUZIR ESPAÇO NO TOPO (CRUCIAL PARA "SUBIR" O MENU) */
     .block-container {
-        padding-top: 1rem !important; /* Muito menos espaço no topo */
+        padding-top: 0rem !important; /* Força zero padding */
         padding-bottom: 5rem;
         max-width: 100%;
+    }
+    
+    /* REMOVER GAPS ADICIONAIS DO CONTAINER PRINCIPAL */
+    div[data-testid="stAppViewContainer"] > .main {
+        padding-top: 0rem !important;
     }
 
     /* BARRA DE NAVEGAÇÃO FIXA (STICKY HEADER) */
@@ -55,7 +60,11 @@ st.markdown("""
         background-color: #FFFFFF;
         border-bottom: 1px solid #E2E8F0;
         padding: 0.8rem 2rem;
-        margin: -1rem -4rem 2rem -4rem; /* Margens negativas para cobrir as laterais */
+        /* MARGEM NEGATIVA PARA SUBIR E COBRIR O ESPAÇO VAZIO DO STREAMLIT */
+        margin-top: -3.5rem !important; 
+        margin-left: -4rem;
+        margin-right: -4rem;
+        margin-bottom: 2rem;
         box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
         display: flex;
         align-items: center;
@@ -217,16 +226,15 @@ else:
         opcoes_map = {"Biblioteca": "📂 Biblioteca", "Adicionar": "➕ Adicionar", "Manutenção": "✏️ Gestão"}
         if user['admin']: opcoes_map["Admin"] = "⚙️ Admin"
         
-        opcoes_chaves = list(opcoes_map.keys())
         opcoes_labels = list(opcoes_map.values())
         
-        # O st.radio agora parece botões graças ao CSS
+        # Menu centralizado
         page_sel = st.radio("Menu", options=opcoes_labels, horizontal=True, label_visibility="collapsed")
         
-        # Reverse lookup para saber qual pagina carregar
+        # Identifica a página
         page = [k for k, v in opcoes_map.items() if v == page_sel][0]
 
-    with c_user:  # CORREÇÃO AQUI (era c_u_user)
+    with c_user: # <--- CORRIGIDO AQUI (antes estava c_u_user)
         c_name, c_btn = st.columns([2, 1], vertical_alignment="center")
         with c_name:
             st.markdown(f"<div style='text-align:right; font-size:0.85rem; color:#475569; line-height:1.2;'>Olá, <br><b>{user['username']}</b></div>", unsafe_allow_html=True)
@@ -241,7 +249,6 @@ else:
     
     # Espaço para compensar o header fixo
     st.write("") 
-    st.write("")
 
     # --- LÓGICA DE PÁGINAS ---
 
