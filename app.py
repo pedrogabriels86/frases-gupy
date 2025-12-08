@@ -97,13 +97,16 @@ st.markdown("""
     .badge-blue { background: #DBEAFE; color: #1E40AF; }
 
     /* NOVO/AJUSTADO: CSS para alinhamento do usuário e botão SAIR no header */
-    .user-info-container {
+    /* Target o container Streamlit que envolve o texto e o botão */
+    div[data-testid="stVerticalBlock"] > div > div > div:nth-child(3) > div {
         display: flex;
-        align-items: center; /* Centraliza verticalmente o texto e o botão */
-        justify-content: flex-end; /* Joga os elementos para a direita da coluna */
-        gap: 10px; /* Adiciona um pequeno espaço entre o texto e o botão */
+        align-items: center; /* Centraliza verticalmente */
+        justify-content: flex-end; /* Joga para a direita */
+        gap: 10px; 
         height: 100%;
+        margin-top: 10px; /* Adiciona um pequeno respiro no topo da coluna para alinhar com o menu */
     }
+
     .user-text {
         text-align: right; 
         font-size: 0.85rem; 
@@ -111,14 +114,14 @@ st.markdown("""
         line-height: 1.2;
     }
     
-    /* Ajuste para alinhar o st.selectbox e st.text_input na Biblioteca */
-    .stSelectbox div[data-baseweb="select"] {
-        margin-top: 0px !important; 
-    }
-    .stText .stTextInput {
+    /* Ajuste para remover margens extras na Biblioteca para alinhar busca e filtro */
+    .stText .stTextInput > div > div {
         margin-bottom: 0px !important;
     }
-    
+    /* Alinha o selectbox (Filtro Empresa) */
+    div[data-testid="stVerticalBlock"] .stSelectbox {
+        padding-top: 0px; 
+    }
 
 </style>
 """, unsafe_allow_html=True)
@@ -226,15 +229,11 @@ else:
             page = [k for k, v in opcoes_map.items() if v == page_sel][0]
 
         # ----------------------------------------------------
-        # AJUSTE DE LAYOUT APLICADO AQUI (Usando Flexbox no CSS)
+        # CÓDIGO DO USUÁRIO E BOTÃO SAIR (Simplificado para o CSS assumir)
         # ----------------------------------------------------
         with c_user:
-            # Aplicamos a classe CSS .user-info-container (display: flex, align-items: center)
-            st.markdown(
-                """
-                <div class="user-info-container">
-                """, unsafe_allow_html=True
-            )
+            # Não injetamos <div class="user-info-container"> aqui, o CSS globalmente
+            # mira o container do Streamlit para aplicar o Flexbox.
             
             # 1. Container do Texto do Usuário (classe .user-text)
             st.markdown(f"<div class='user-text'>Olá, <br><b>{user['username']}</b></div>", unsafe_allow_html=True)
@@ -245,9 +244,6 @@ else:
                 st.session_state["usuario_logado"] = None
                 st.session_state["logout_sync"] = True
                 st.rerun()
-
-            # Fechando o container Flexbox
-            st.markdown("</div>", unsafe_allow_html=True)
     
     # --- LÓGICA DE PÁGINAS ---
 
@@ -265,27 +261,25 @@ else:
         if page == "Biblioteca":
             st.subheader("Biblioteca de Frases")
             
-            # Container de busca (sem a borda que estava duplicada)
-            c_search, c_filter = st.columns([3, 1])
-            
-            with c_search:
-                # O selectbox é renderizado primeiro, garantindo alinhamento superior
-                termo = st.text_input("Pesquisa Inteligente", 
-                                    placeholder="🔎 Busque por empresa, motivo ou conteúdo...", 
-                                    label_visibility="collapsed")
-            
-            with c_filter:
-                filtro_empresa = st.selectbox("Filtrar Empresa", 
-                                                ["Todas"] + sorted(list(set(d['empresa'] for d in dados_totais))), 
-                                                label_visibility="collapsed")
-            
-            # Removendo a borda extra do container antigo, deixando a busca limpa
+            # Container de busca 
+            with st.container(border=True): # Adicionando a borda novamente para manter o design original
+                c_search, c_filter = st.columns([3, 1])
+                
+                with c_search:
+                    termo = st.text_input("Pesquisa Inteligente", 
+                                        placeholder="🔎 Busque por empresa, motivo ou conteúdo...", 
+                                        label_visibility="collapsed")
+                
+                with c_filter:
+                    filtro_empresa = st.selectbox("Filtrar Empresa", 
+                                                    ["Todas"] + sorted(list(set(d['empresa'] for d in dados_totais))), 
+                                                    label_visibility="collapsed")
             
             filtrados = dados_totais
             if filtro_empresa != "Todas": filtrados = [f for f in filtrados if f['empresa'] == filtro_empresa]
             if termo: filtrados = [f for f in filtrados if termo.lower() in str(f).lower()]
 
-            st.markdown(f"<div style='margin-bottom:15px; color:#64748B;'>Encontrados <b>{len(filtrados)}</b> resultados</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='margin-top: 15px; margin-bottom:15px; color:#64748B;'>Encontrados <b>{len(filtrados)}</b> resultados</div>", unsafe_allow_html=True)
             
             if not filtrados: st.info("Nenhum resultado encontrado.")
             else:
