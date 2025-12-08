@@ -25,7 +25,7 @@ except: pass
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. CSS CUSTOMIZADO (MÁXIMA ESTABILIDADE)
+# 2. CSS CUSTOMIZADO (MÁXIMA COMPACTAÇÃO)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -39,37 +39,38 @@ st.markdown("""
         display: none !important; 
     }
     
-    /* Zera Margem do Corpo Principal */
+    /* Zera Margem do Corpo Principal: REDUZINDO PADDING LATERAL DE 5rem PARA 2.5rem */
     .block-container {
-        padding-top: 1rem !important; 
-        padding-bottom: 5rem;
+        padding-top: 0.5rem !important; /* Mais compacto no topo */
+        padding-bottom: 3rem; /* Mais compacto no rodapé */
         margin-top: 0 !important;
         max-width: 100%;
-        padding-left: 5rem; /* Reintroduz o padding lateral padrão do wide */
-        padding-right: 5rem;
+        padding-left: 2.5rem; /* Menos espaço em branco nas laterais */
+        padding-right: 2.5rem;
     }
     
-    /* Zera Margens Internas de Colunas e Blocks que causam espaços indesejados */
+    /* Zera Margens Internas de Colunas e Blocks */
     div[data-testid^="stVerticalBlock"] > div:first-child > div:nth-child(2) {
         margin-top: 0rem !important;
         padding-top: 0rem !important;
     }
     
-    /* 2. Estilo do Container do Header (Fixo e Estável) */
+    /* 2. Estilo do Container do Header (Fixo e Estável): REDUZINDO PADDING VERTICAL */
     div[data-testid="stVerticalBlock"] > div:first-child > div:first-child { 
         background-color: white;
         border-bottom: 1px solid #E2E8F0;
-        padding: 1rem 5rem; /* Ajustado para 5rem para corresponder ao padding do block-container */
-        margin: -1rem -5rem 2rem -5rem; 
+        padding: 0.8rem 2.5rem; /* Padding vertical e lateral reduzido para compactar */
+        margin: -0.5rem -2.5rem 1.5rem -2.5rem; /* Ajuste de margem para compensar o novo padding do block-container */
         box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
         z-index: 100;
         width: 100vw; 
     }
     
-    /* 3. Estilização do Menu (Tabs) - Mantido para estabilidade */
+    /* 3. Estilização do Menu (Tabs) */
     .stRadio > div[role="radiogroup"] { display: flex; gap: 8px; justify-content: center; }
     .stRadio > div[role="radiogroup"] label {
-        padding: 6px 16px; border-radius: 6px; transition: all 0.2s ease;
+        padding: 4px 14px; /* Padding menor para menu mais compacto */
+        border-radius: 6px; transition: all 0.2s ease;
         color: #64748B; font-weight: 500; font-size: 0.9rem;
     }
     .stRadio > div[role="radiogroup"] label:hover { background-color: #F1F5F9; color: #0F172A; }
@@ -82,18 +83,22 @@ st.markdown("""
     /* 4. Alinhamento de Usuário e Botão SAIR no Header */
     div[data-testid="stVerticalBlock"] > div:first-child > div:first-child > div:nth-child(3) > div {
         display: flex; align-items: center; justify-content: flex-end; 
-        gap: 10px; height: 100%;
+        gap: 8px; /* Reduzindo o espaço entre texto e botão */
+        height: 100%;
     }
-    .user-text { text-align: right; font-size: 0.85rem; color: #475569; line-height: 1.2; }
+    .user-text { text-align: right; font-size: 0.8rem; color: #475569; line-height: 1.1; }
+    .stButton button { padding: 0.3rem 0.8rem !important; } /* Botão menor no header */
     
     /* 5. Ajustes de Inputs para Alinhamento e Aparência */
-    /* Garante que inputs e selectbox se alinhem sem margens extras */
     div[data-testid="stVerticalBlock"] div[data-testid="stTextInput"], 
     div[data-testid="stVerticalBlock"] div[data-testid="stSelectbox"] {
         margin-bottom: 0px !important; 
     }
     
-    /* Cards (Biblioteca) */
+    /* Títulos Subheader mais compactos */
+    h3 { margin-top: 0.5rem; margin-bottom: 0.5rem; }
+
+    /* Cards (Biblioteca) - Mantidos os estilos para a beleza do card */
     .frase-header { background-color: white; border-radius: 12px 12px 0 0; border: 1px solid #E2E8F0; border-bottom: none; padding: 15px 20px; }
     .card-meta { margin-top: 10px; padding-top: 10px; border-top: 1px solid #F1F5F9; font-size: 0.75rem; color: #94A3B8; display: flex; justify-content: space-between; align-items: center; }
     .stCodeBlock { border: 1px solid #E2E8F0; border-top: none; border-radius: 0 0 12px 12px; background-color: white !important; }
@@ -163,24 +168,24 @@ if st.session_state["usuario_logado"] is None:
                 st.session_state["usuario_logado"] = user_db
 
 # ==============================================================================
-# 5. FUNÇÕES DE RENDERIZAÇÃO POR PÁGINA (Ajustadas para Estabilidade)
+# 5. FUNÇÕES DE RENDERIZAÇÃO POR PÁGINA (Ajustadas para Compactação)
 # ==============================================================================
 
 def render_biblioteca(dados_totais, user):
     """Renderiza a página Biblioteca com busca e exibição em cards."""
-    st.subheader("Biblioteca de Frases")
+    # st.subheader("Biblioteca de Frases") # Removendo Subheader, pois o conteúdo logo abaixo é o filtro
     
     # CONTAINER DE BUSCA E FILTRO (Mantido e estável)
     with st.container(border=True): 
         c_search, c_filter = st.columns([5, 2]) 
         
         with c_search:
-            # Usando key para garantir que o estado é rastreado
-            termo = st.text_input("Pesquisa Inteligente", 
+            termo = st.text_input("Biblioteca de Frases", 
                                 placeholder="🔎 Busque por empresa, motivo ou conteúdo...", 
-                                label_visibility="collapsed", key="lib_search_term")
+                                label_visibility="visible", key="lib_search_term")
         
         with c_filter:
+            st.markdown("<p style='font-size: 0.8rem; margin-bottom: -5px; color: #475569;'>Filtrar Empresa</p>", unsafe_allow_html=True)
             filtro_empresa = st.selectbox("Filtrar Empresa", 
                                             ["Todas"] + sorted(list(set(d['empresa'] for d in dados_totais))), 
                                             label_visibility="collapsed", key="lib_filter_empresa")
@@ -197,7 +202,7 @@ def render_biblioteca(dados_totais, user):
                                               termo_limpo in limpar_coluna(f['conteudo'])]
 
 
-    st.markdown(f"<div style='margin-top: 15px; margin-bottom:15px; color:#64748B;'>Encontrados <b>{len(filtrados)}</b> resultados</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='margin-top: 10px; margin-bottom:10px; color:#64748B;'>Encontrados <b>{len(filtrados)}</b> resultados</div>", unsafe_allow_html=True)
     
     # EXIBIÇÃO DOS CARDS EM DUAS COLUNAS (Mantido e estável)
     if not filtrados: st.info("Nenhum resultado encontrado.")
@@ -220,15 +225,15 @@ def render_biblioteca(dados_totais, user):
                     </div>
                     """, unsafe_allow_html=True)
                     st.code(frase['conteudo'], language="text")
-                    st.write("") # Espaço entre cards
+                    # Espaço vertical reduzido entre os cards
+                    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True) 
 
             render_frase_card(row_c1, filtrados[i])
             if i + 1 < len(filtrados):
                 render_frase_card(row_c2, filtrados[i+1])
                 
 def render_adicionar(dados_totais, user):
-    """Renderiza a página Adicionar. O formulário manual não será centralizado, mas usará colunas 
-    para melhor alinhamento, como na sua primeira versão, mas com ênfase no design claro."""
+    """Renderiza a página Adicionar. Mantém a estrutura de colunas estável."""
     st.markdown("### Adicionar Novas Frases")
     tab_man, tab_imp = st.tabs(["✍️ Manual", "📥 Importação em Massa"])
     
@@ -257,7 +262,7 @@ def render_adicionar(dados_totais, user):
                             st.toast("✅ Salvo com sucesso!"); 
                             time.sleep(1); 
                             st.cache_data.clear(); 
-                            st.rerun() # Força a re-renderização para limpar o form
+                            st.rerun() 
                     else: st.warning("Preencha todos os campos obrigatórios.")
 
     with tab_imp:
@@ -349,7 +354,6 @@ def render_manutencao(dados_totais, user):
                     time.sleep(1); 
                     st.rerun()
                 
-                # Botão Excluir
                 if c_d.form_submit_button("🗑️ Excluir", use_container_width=True):
                     st.session_state[f"confirm_delete_{item['id']}"] = True
                     st.rerun()
@@ -482,6 +486,7 @@ else:
 
     # 6.1 HEADER
     with st.container():
+        # Colunas com alinhamento "center" para visualmente compactar o menu
         c_logo, c_menu, c_user = st.columns([1, 3, 1], vertical_alignment="center")
         
         with c_logo:
@@ -495,7 +500,6 @@ else:
             opcoes_labels = list(opcoes_map.values())
             if 'page_sel' not in st.session_state: st.session_state.page_sel = opcoes_labels[0]
             
-            # Usando key='page_sel' para persistência
             page_sel = st.radio("Menu", options=opcoes_labels, horizontal=True, label_visibility="collapsed", key='page_sel')
             page = [k for k, v in opcoes_map.items() if v == page_sel][0]
 
