@@ -25,7 +25,7 @@ except: pass
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. CSS "NUCLEAR" (ZERO ESPAÇOS NO TOPO)
+# 2. CSS "NAVBAR FIXA" (SOLUÇÃO DEFINITIVA DE LAYOUT)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -34,49 +34,42 @@ st.markdown("""
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #F8FAFC; }
     
-    /* 1. ELIMINAR COMPLETAMENTE O HEADER PADRÃO */
-    header[data-testid="stHeader"] {
-        display: none !important;
-    }
-    
-    /* 2. ZERAR PADDING DO CONTAINER PRINCIPAL */
-    .block-container {
-        padding-top: 0px !important;
-        padding-bottom: 5rem;
-        max-width: 100%;
-    }
-    
-    /* 3. ZERAR ESPAÇOS SUPERIORES DA VISÃO DO APP */
-    div[data-testid="stAppViewContainer"] > section:first-child {
-        padding-top: 0px !important;
-    }
+    /* 1. ESCONDER TUDO QUE É DO STREAMLIT NO TOPO */
+    header[data-testid="stHeader"] { display: none !important; }
+    div[data-testid="stToolbar"] { display: none !important; }
+    div[data-testid="stDecoration"] { display: none !important; }
 
-    /* 4. BARRA DE NAVEGAÇÃO FIXA (STICKY) */
+    /* 2. BARRA DE NAVEGAÇÃO FLUTUANTE (FIXA NO TOPO) */
     .nav-wrapper {
-        position: sticky;
+        position: fixed; /* Fixa na tela, não rola com a página */
         top: 0;
-        z-index: 999999;
+        left: 0;
+        width: 100vw; /* Largura total da tela */
+        height: 80px; /* Altura fixa definida */
         background-color: #FFFFFF;
         border-bottom: 1px solid #E2E8F0;
-        padding: 12px 2rem; /* Altura ajustada */
+        z-index: 999999; /* Garante que fica acima de tudo */
+        padding: 0 3rem; /* Espaçamento lateral */
         
-        /* Expande para cobrir as laterais */
-        margin-left: -5rem; 
-        margin-right: -5rem;
-        margin-bottom: 1.5rem;
-        
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+        /* Flexbox para alinhar itens */
         display: flex;
         align-items: center;
         justify-content: space-between;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.03);
     }
 
-    /* REMOVER GAPS DO BLOCO VERTICAL DO TOPO */
-    div[data-testid="stVerticalBlock"] > div:first-child {
-        margin-top: 0px !important;
-        padding-top: 0px !important;
+    /* 3. EMPURRAR O CONTEÚDO DA PÁGINA PARA BAIXO */
+    /* Como o menu é 'fixed', ele sai do fluxo. Precisamos abrir espaço para ele não tapar o conteúdo. */
+    .block-container {
+        padding-top: 100px !important; /* 80px do menu + 20px de respiro */
+        padding-bottom: 5rem;
+        max-width: 100%;
     }
 
+    /* AJUSTES INTERNOS DO MENU */
+    /* Remove margens extras dos componentes dentro do menu */
+    .nav-wrapper [data-testid="stVerticalBlock"] { gap: 0 !important; }
+    
     /* ESTILIZAÇÃO DO MENU (ABAS) */
     .stRadio > div[role="radiogroup"] {
         display: flex;
@@ -84,6 +77,7 @@ st.markdown("""
         background: transparent;
         border: none;
         padding: 0;
+        margin-top: 12px; /* Pequeno ajuste visual */
     }
     .stRadio > div[role="radiogroup"] label > div:first-child { display: none; }
     .stRadio > div[role="radiogroup"] label {
@@ -105,7 +99,7 @@ st.markdown("""
         box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
 
-    /* CARDS */
+    /* CARDS & ELEMENTOS */
     .frase-header { background-color: white; border-radius: 12px 12px 0 0; border: 1px solid #E2E8F0; border-bottom: none; padding: 15px 20px; }
     .card-meta { margin-top: 10px; padding-top: 10px; border-top: 1px solid #F1F5F9; font-size: 0.75rem; color: #94A3B8; display: flex; justify-content: space-between; align-items: center; }
     .stCodeBlock { border: 1px solid #E2E8F0; border-top: none; border-radius: 0 0 12px 12px; background-color: white !important; }
@@ -115,7 +109,6 @@ st.markdown("""
     
     /* ESCONDER O RODAPÉ PADRÃO E O TOOLBAR */
     footer { display: none; }
-    div[data-testid="stToolbar"] { display: none; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -204,7 +197,8 @@ else:
     user = st.session_state["usuario_logado"]
     dados_totais = buscar_dados()
     
-    # --- HEADER PROFISSIONAL (FIXO) ---
+    # --- HEADER PROFISSIONAL (FIXO NO TOPO) ---
+    # Container HTML Puro para garantir posição fixa
     st.markdown('<div class="nav-wrapper">', unsafe_allow_html=True)
     
     c_logo, c_menu, c_user = st.columns([1, 3, 1], vertical_alignment="center")
@@ -234,8 +228,8 @@ else:
     
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Ajuste de layout para conteúdo não ficar colado no header
-    st.write("") 
+    # Não precisamos mais de st.write("") aqui, pois o padding-top do container 
+    # já empurra o conteúdo para baixo.
 
     # --- LÓGICA DE PÁGINAS ---
 
