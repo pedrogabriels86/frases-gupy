@@ -26,7 +26,7 @@ except:
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. CSS AVANÇADO (MODERN UI)
+# 2. CSS AVANÇADO (MODERN UI & CARDS PADRONIZADOS)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -52,18 +52,37 @@ st.markdown("""
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
     
-    /* KPIS / MÉTRICAS */
+    /* --- KPIS / MÉTRICAS (CORREÇÃO DE TAMANHO) --- */
     div[data-testid="stMetric"] {
         background-color: #FFFFFF;
         border: 1px solid #E2E8F0;
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
         transition: transform 0.2s;
+        
+        /* O SEGREDO DO TAMANHO IGUAL: */
+        min-height: 140px; /* Força uma altura mínima igual para todos */
+        display: flex;
+        flex-direction: column;
+        justify-content: center; /* Centraliza o conteúdo verticalmente */
+        width: 100%;
     }
     div[data-testid="stMetric"]:hover {
         transform: translateY(-2px);
         border-color: #2175D9;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+    }
+    
+    /* Centralizar o rótulo da métrica (Opcional, mas fica bonito) */
+    div[data-testid="stMetricLabel"] {
+        font-size: 0.9rem !important;
+        color: #64748B !important;
+    }
+    div[data-testid="stMetricValue"] {
+        font-size: 1.8rem !important;
+        font-weight: 700 !important;
+        color: #0F172A !important;
     }
 
     /* CARD DE FRASE (ESTILO) */
@@ -87,7 +106,7 @@ st.markdown("""
         font-weight: 600;
         transition: all 0.2s;
     }
-    /* Tabs personalizadas (Radio Button Hack Refinado) */
+    /* Tabs personalizadas */
     .stRadio > div[role="radiogroup"] {
         background: white;
         padding: 6px;
@@ -155,7 +174,7 @@ def limpar_coluna(col):
 # ==============================================================================
 if "usuario_logado" not in st.session_state: st.session_state["usuario_logado"] = None
 
-# --- TELA DE LOGIN (Centralizada e Moderna) ---
+# --- TELA DE LOGIN ---
 if st.session_state["usuario_logado"] is None:
     col_spacer_top, col_login, col_spacer_bottom = st.columns([1, 1, 1])
     st.write("#"); st.write("#")
@@ -237,9 +256,11 @@ else:
         # PÁGINA: BIBLIOTECA
         # ======================================================================
         if page == "Biblioteca":
+            # MÉTRICAS COM TAMANHO PADRONIZADO
             m1, m2, m3, m4 = st.columns(4)
             total_frases = len(dados_totais)
             novas_hoje = len([d for d in dados_totais if d.get('data_revisao') == datetime.now().strftime('%Y-%m-%d')])
+            
             m1.metric("Total de Frases", total_frases)
             m2.metric("Adicionadas Hoje", novas_hoje, delta=novas_hoje if novas_hoje > 0 else None)
             m3.metric("Minhas Contribuições", len([d for d in dados_totais if d.get('revisado_por') == user['username']]))
@@ -374,7 +395,7 @@ else:
                                 registrar_log(user['username'], "Exclusão", str(item['id'])); st.toast("Excluído."); st.cache_data.clear(); time.sleep(1); st.rerun()
 
         # ======================================================================
-        # PÁGINA: ADMIN (USUÁRIOS E LOGS) - ATUALIZADO COM EDIÇÃO
+        # PÁGINA: ADMIN (USUÁRIOS E LOGS)
         # ======================================================================
         elif page == "Admin" and user['admin']:
             st.markdown("### Painel Administrativo")
@@ -402,50 +423,34 @@ else:
                 lista_usuarios = buscar_usuarios()
                 
                 for u in lista_usuarios:
-                    # Título do Expander mostra o nome e o cargo atual
                     role_label = "👑 Admin" if u['admin'] else "👤 User"
-                    
                     with st.expander(f"{role_label} | {u['username']}"):
-                        # Formulário de Edição
                         with st.form(key=f"edit_u_{u['id']}"):
                             st.write("**Editar Permissões e Dados**")
                             c_edit_1, c_edit_2 = st.columns(2)
-                            
                             new_username = c_edit_1.text_input("Nome de Usuário", value=u['username'])
                             
-                            # Trava de segurança: Se for o próprio usuário logado, desabilita a checkbox de tirar admin
                             disabled_admin = (u['id'] == user['id'])
                             new_admin = c_edit_2.checkbox("Acesso de Administrador", value=u['admin'], disabled=disabled_admin)
-                            if disabled_admin:
-                                c_edit_2.caption("Você não pode remover seu próprio acesso de admin.")
+                            if disabled_admin: c_edit_2.caption("Você não pode remover seu próprio acesso de admin.")
 
                             st.write("---")
                             c_act_1, c_act_2, c_act_3 = st.columns([1, 1, 1])
                             
-                            # Botão Salvar
                             if c_act_1.form_submit_button("💾 Salvar Alterações", type="primary"):
-                                supabase.table("usuarios").update({
-                                    "username": new_username,
-                                    "admin": new_admin
-                                }).eq("id", u['id']).execute()
+                                supabase.table("usuarios").update({"username": new_username, "admin": new_admin}).eq("id", u['id']).execute()
                                 registrar_log(user['username'], "Editou Usuário", u['username'])
-                                st.toast("Dados atualizados!")
-                                time.sleep(1)
-                                st.rerun()
+                                st.toast("Dados atualizados!"); time.sleep(1); st.rerun()
                             
-                            # Botão Resetar Senha
                             if c_act_2.form_submit_button("🔄 Resetar Senha"):
                                 supabase.table("usuarios").update({"trocar_senha": True}).eq("id", u['id']).execute()
                                 st.toast(f"Senha de {u['username']} resetada!")
 
-                            # Botão Excluir
                             if u['username'] != user['username']:
                                 if c_act_3.form_submit_button("🗑️ Excluir Usuário"):
                                     supabase.table("usuarios").delete().eq("id", u['id']).execute()
-                                    registrar_log(user['username'], "Excluiu Usuário", u['username'])
-                                    st.rerun()
-                            else:
-                                c_act_3.write("") # Espaço vazio
+                                    registrar_log(user['username'], "Excluiu Usuário", u['username']); st.rerun()
+                            else: c_act_3.write("") 
 
             with tab_logs:
                 logs = supabase.table("logs").select("*").order("data_hora", desc=True).limit(100).execute().data
