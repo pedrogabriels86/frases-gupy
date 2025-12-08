@@ -88,17 +88,14 @@ def padronizar(texto, tipo="titulo"):
 # --- 4. FRONTEND ---
 if "usuario_logado" not in st.session_state: st.session_state["usuario_logado"] = None
 
-# ==============================================================================
-# URL DA LOGO (Atualizada)
+# URL DA LOGO
 LOGO_URL = "https://urmwvabkikftsefztadb.supabase.co/storage/v1/object/public/imagens/logo_gupy.png.png"
-# ==============================================================================
 
 if st.session_state["usuario_logado"] is None:
     c1, c2, c3 = st.columns([1,1.2,1])
     with c2:
         st.write(""); st.write("")
         with st.container(border=True):
-            # Logo na tela de Login
             if LOGO_URL:
                 st.image(LOGO_URL, width=150)
             else:
@@ -116,7 +113,6 @@ else:
     user = st.session_state["usuario_logado"]
     
     with st.sidebar:
-        # Logo no Menu Lateral
         if LOGO_URL:
             st.image(LOGO_URL, width=140)
         else:
@@ -173,14 +169,14 @@ else:
                         if nc:
                             ne, nd, nm = padronizar(ne), padronizar(nd), padronizar(nm); nc = padronizar(nc, "frase")
                             if len(supabase.table("frases").select("id").eq("conteudo", nc).execute().data) > 0:
-                                st.error("Frase duplicada.")
+                                st.error("Esta frase já existe no banco de dados.")
                             else:
                                 supabase.table("frases").insert({
                                     "empresa":ne,"documento":nd,"motivo":nm,"conteudo":nc,
                                     "revisado_por":user['username'],"data_revisao":datetime.now().strftime('%Y-%m-%d')
                                 }).execute()
-                                registrar_log(user['username'], "Create", f"{ne}-{nm}")
-                                st.success("Adicionado!"); time.sleep(1); st.rerun()
+                                registrar_log(user['username'], "Criou Frase", f"{ne} - {nm}")
+                                st.success("Frase adicionada com sucesso!"); time.sleep(1); st.rerun()
 
             st.write("")
             st.markdown("#### Gerenciar Existentes")
@@ -205,9 +201,9 @@ else:
                                     novos.append(item)
                             if novos:
                                 supabase.table("frases").insert(novos).execute()
-                                registrar_log(user['username'], "Import", str(len(novos)))
-                                st.success(f"{len(novos)} importados!"); time.sleep(1); st.rerun()
-                        except: st.error("Erro no arquivo")
+                                registrar_log(user['username'], "Importação em Massa", f"{len(novos)} itens")
+                                st.success(f"{len(novos)} frases importadas com sucesso!"); time.sleep(1); st.rerun()
+                        except: st.error("Erro ao processar o arquivo")
 
             dados = buscar_dados()
             lista_final = [f for f in dados if q.lower() in str(f).lower()] if q else dados
@@ -233,10 +229,10 @@ else:
                                     "motivo":padronizar(fm),"conteudo":padronizar(fc,"frase"),
                                     "revisado_por":user['username'],"data_revisao":datetime.now().strftime('%Y-%m-%d')
                                 }).eq("id", f['id']).execute()
-                                registrar_log(user['username'], "Edit", str(f['id'])); st.rerun()
+                                registrar_log(user['username'], "Editou Frase", str(f['id'])); st.rerun()
                             if c_del.form_submit_button("🗑️ Excluir", type="primary", use_container_width=True):
                                 supabase.table("frases").delete().eq("id", f['id']).execute()
-                                registrar_log(user['username'], "Delete", str(f['id'])); st.rerun()
+                                registrar_log(user['username'], "Excluiu Frase", str(f['id'])); st.rerun()
 
         # --- PÁGINA 3: GERENCIADOR ---
         elif page == "⚙️ Gerenciador" and user['admin']:
@@ -250,7 +246,7 @@ else:
                         nu = st.text_input("Nome"); ns = st.text_input("Senha"); na = st.checkbox("Admin")
                         if st.button("Criar User", use_container_width=True):
                             supabase.table("usuarios").insert({"username":nu,"senha":ns,"admin":na,"trocar_senha":True}).execute()
-                            registrar_log(user['username'], "New User", nu); st.rerun()
+                            registrar_log(user['username'], "Criou Usuário", nu); st.rerun()
                 with c_list:
                     users = buscar_usuarios()
                     st.subheader("Lista de Usuários")
@@ -261,7 +257,9 @@ else:
                                 supabase.table("usuarios").update({"trocar_senha":True}).eq("id", u['id']).execute()
                                 st.toast("Resetado!")
                             if u['username'] != user['username'] and c_y.button("Excluir", key=f"d{u['id']}", type="primary"):
-                                supabase.table("usuarios").delete().eq("id", u['id']).execute(); st.rerun()
+                                supabase.table("usuarios").delete().eq("id", u['id']).execute()
+                                registrar_log(user['username'], "Excluiu Usuário", u['username'])
+                                st.rerun()
             with t2:
                 st.subheader("Logs de Auditoria")
                 logs = supabase.table("logs").select("*").order("data_hora", desc=True).limit(50).execute().data
@@ -278,4 +276,4 @@ else:
                 if st.button("LIMPAR BANCO DE FRASES", type="primary"):
                     if check == "QUERO APAGAR TUDO":
                         supabase.table("frases").delete().neq("id", 0).execute()
-                        registrar_log(user['username'], "WIPE", "ALL"); st.rerun()
+                        registrar_log(user['username'], "LIMPEZA TOTAL", "Todas as frases foram apagadas"); st.rerun()
