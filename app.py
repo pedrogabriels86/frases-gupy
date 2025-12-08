@@ -11,18 +11,24 @@ from PIL import Image
 # ==============================================================================
 # 🖼️ ÁREA DAS IMAGENS
 # ==============================================================================
+
+# 1. LINK DO FAVICON (Ícone pequeno da aba) - ATUALIZADO
+FAVICON_URL = "https://urmwvabkikftsefztadb.supabase.co/storage/v1/object/public/imagens/favicon.png"
+
+# 2. LINK DA LOGO (Imagem do menu)
 LOGO_URL = "https://urmwvabkikftsefztadb.supabase.co/storage/v1/object/public/imagens/logo_gupy.png.png"
+
 # ==============================================================================
 
 # --- TENTA CARREGAR O FAVICON ---
 favicon = "💙" 
 try:
-    response = requests.get(LOGO_URL, timeout=3)
+    response = requests.get(FAVICON_URL, timeout=3)
     if response.status_code == 200:
         favicon = Image.open(io.BytesIO(response.content))
 except: pass
 
-# --- 1. CONFIGURAÇÃO DA PÁGINA (TÍTULO DO NAVEGADOR ATUALIZADO) ---
+# --- 1. CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Frases de Recusa - Gupy", page_icon=favicon, layout="wide")
 
 # --- CSS MODERNO E LIMPO ---
