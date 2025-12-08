@@ -15,7 +15,7 @@ FAVICON_URL = "https://urmwvabkikftsefztadb.supabase.co/storage/v1/object/public
 LOGO_URL = "https://urmwvabkikftsefztadb.supabase.co/storage/v1/object/public/imagens/logo_gupy.png.png"
 # ==============================================================================
 
-# --- CARREGAR FAVICON ---
+# --- TENTA CARREGAR O FAVICON ---
 favicon = "💙" 
 try:
     response = requests.get(FAVICON_URL, timeout=3)
@@ -26,33 +26,13 @@ except: pass
 # --- 1. CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Frases de Recusa - Gupy", page_icon=favicon, layout="wide")
 
-# --- CSS MODERNO (CORRIGIDO) ---
+# --- CSS MODERNO (COM CABEÇALHO VISÍVEL NOVAMENTE) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
     * { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #F5F7FA; }
-    
-    /* --- LIMPEZA VISUAL (SEM QUEBRAR O MENU) --- */
-    
-    /* Esconde o menu de 3 pontinhos (Hambúrguer) no topo direito */
-    #MainMenu {visibility: hidden;}
-    
-    /* Esconde o rodapé padrão "Made with Streamlit" */
-    footer {visibility: hidden;}
-    
-    /* Esconde a barra colorida decorativa no topo */
-    header {visibility: hidden;}
-    
-    /* Tenta esconder o botão "Deploy" ou "Manage App" se aparecer */
-    .stDeployButton {display:none;}
-    
-    /* Ajuste para o conteúdo subir, já que tiramos a barra colorida */
-    .block-container {
-        padding-top: 1rem !important;
-        padding-bottom: 2rem !important;
-    }
     
     /* SIDEBAR */
     section[data-testid="stSidebar"] { background-color: #00122F; }
@@ -86,13 +66,13 @@ st.markdown("""
         border-color: #2175D9; box-shadow: 0 0 0 2px rgba(33, 117, 217, 0.2);
     }
     
-    /* EXPANDER */
+    /* Expander mais limpo */
     .streamlit-expanderHeader {
         background-color: white;
         border-radius: 6px;
     }
     
-    /* LOGO FALLBACK */
+    /* Logo Fallback Text */
     .logo-text {
         font-size: 2rem; font-weight: 800; color: #2175D9; letter-spacing: -1px; text-align: center;
     }
@@ -137,7 +117,7 @@ if st.session_state["usuario_logado"] is None:
     with c2:
         st.write(""); st.write("")
         with st.container(border=True):
-            if LOGO_URL: st.image(LOGO_URL, width=150)
+            if LOGO_URL: st.image(LOGO_URL, use_container_width=True)
             else: st.markdown("<h1 class='logo-text'>gupy</h1>", unsafe_allow_html=True)
             
             st.markdown("<h3 style='text-align:center; color:#555;'>Frases de Recusa</h3>", unsafe_allow_html=True)
@@ -158,8 +138,18 @@ else:
         st.caption(f"Olá, {user['username']}")
         st.divider()
         
-        opcoes = ["📂 Frases de Recusa", "📝 Adicionar Frases", "⚙️ Gerenciador"] if user['admin'] else ["📂 Frases de Recusa", "📝 Adicionar Frases"]
-        page = st.radio("Navegação", opcoes, label_visibility="collapsed")
+        # --- MENU LATERAL REORGANIZADO ---
+        # Separei "Adicionar" de "Editar" para ficar claro
+        opcoes = [
+            "📂 Biblioteca", 
+            "➕ Cadastrar Nova", 
+            "✏️ Editar / Gerenciar"
+        ]
+        
+        if user['admin']: 
+            opcoes.append("⚙️ Administração")
+            
+        page = st.radio("NAVEGAÇÃO", opcoes)
         
         st.divider()
         if st.button("Sair", use_container_width=True): st.session_state["usuario_logado"] = None; st.rerun()
@@ -170,14 +160,15 @@ else:
             if n1==n2 and n1: supabase.table("usuarios").update({"senha":n1,"trocar_senha":False}).eq("id",user['id']).execute(); user['trocar_senha']=False; st.rerun()
 
     else:
-        # --- PÁGINA 1: FRASES DE RECUSA ---
-        if page == "📂 Frases de Recusa":
-            st.title("Frases de Recusa")
+        # --- 1. BIBLIOTECA (Visualização) ---
+        if page == "📂 Biblioteca":
+            st.title("Biblioteca de Frases")
             c_busca, c_filtro = st.columns([2,1])
             termo = c_busca.text_input("Busca Rápida", placeholder="🔎 Digite para pesquisar...", label_visibility="collapsed")
             dados = buscar_dados()
             filtrados = [f for f in dados if termo.lower() in str(f).lower()] if termo else dados
             with c_filtro: st.caption(f"{len(filtrados)} resultados encontrados")
+            
             for f in filtrados:
                 with st.container(border=True):
                     col_info, col_cont = st.columns([1, 3])
@@ -194,16 +185,14 @@ else:
                     with col_cont:
                         st.code(f['conteudo'], language="text")
 
-        # --- PÁGINA 2: ADICIONAR FRASES ---
-        elif page == "📝 Adicionar Frases":
-            c_head, c_btn = st.columns([3, 1])
-            c_head.title("Adicionar Frases")
-            
-            with st.expander("➕  CLIQUE AQUI PARA ADICIONAR NOVA FRASE", expanded=False):
+        # --- 2. CADASTRAR NOVA (Apenas Inserção) ---
+        elif page == "➕ Cadastrar Nova":
+            st.title("Cadastrar Nova Frase")
+            with st.container(border=True):
                 with st.form("quick_add"):
                     c1, c2, c3 = st.columns(3)
                     ne = c1.text_input("Empresa"); nd = c2.text_input("Documento"); nm = c3.text_input("Motivo")
-                    nc = st.text_area("Conteúdo")
+                    nc = st.text_area("Conteúdo da Frase", height=150)
                     if st.form_submit_button("💾 Salvar Registro", use_container_width=True):
                         if nc:
                             ne, nd, nm = padronizar(ne), padronizar(nd), padronizar(nm); nc = padronizar(nc, "frase")
@@ -216,98 +205,74 @@ else:
                                 }).execute()
                                 registrar_log(user['username'], "Criou Frase", f"{ne} - {nm}")
                                 st.success("Adicionado!"); time.sleep(1); st.rerun()
-
-            st.write("")
-            st.markdown("#### Gerenciar Existentes")
-            col_search, col_upload = st.columns([2, 1])
-            q = col_search.text_input("🔎 Buscar registro para editar ou excluir...", placeholder="Digite palavras-chave")
             
-            with col_upload:
-                with st.popover("📂 Importar Excel/CSV", use_container_width=True):
-                    upl = st.file_uploader("Arquivo", type=['csv','xlsx'])
-                    
-                    if upl and st.button("Processar"):
-                        try:
-                            if upl.name.endswith('.csv'):
-                                try: df = pd.read_csv(upl)
-                                except: df = pd.read_csv(upl, encoding='latin-1', sep=';')
-                            else:
-                                df = pd.read_excel(upl)
+            st.write("")
+            with st.expander("📂 Importação em Massa (Excel/CSV)"):
+                upl = st.file_uploader("Arquivo", type=['csv','xlsx'])
+                if upl and st.button("Processar Importação"):
+                    # Lógica de Importação (Mantida igual a anterior que funcionou)
+                    try:
+                        if upl.name.endswith('.csv'):
+                            try: df = pd.read_csv(upl)
+                            except: df = pd.read_csv(upl, encoding='latin-1', sep=';')
+                        else: df = pd.read_excel(upl)
 
-                            header_idx = -1
-                            keywords = ['empresa', 'conteudo', 'frase', 'motivo']
-                            
-                            for i, row in df.head(50).iterrows():
-                                row_str = " ".join([str(val).lower() for val in row.values])
-                                if sum(1 for k in keywords if k in row_str) >= 2:
-                                    header_idx = i
-                                    break
-                            
-                            if header_idx > -1:
-                                if header_idx > 0:
-                                    if upl.name.endswith('.csv'):
-                                        upl.seek(0)
-                                        df = pd.read_csv(upl, header=header_idx, encoding='latin-1', sep=None, engine='python')
-                                    else:
-                                        upl.seek(0)
-                                        df = pd.read_excel(upl, header=header_idx)
+                        header_idx = -1
+                        keywords = ['empresa', 'conteudo', 'frase', 'motivo']
+                        for i, row in df.head(50).iterrows():
+                            row_str = " ".join([str(val).lower() for val in row.values])
+                            if sum(1 for k in keywords if k in row_str) >= 2:
+                                header_idx = i; break
+                        
+                        if header_idx > -1:
+                            if header_idx > 0:
+                                if upl.name.endswith('.csv'):
+                                    upl.seek(0); df = pd.read_csv(upl, header=header_idx, encoding='latin-1', sep=None, engine='python')
+                                else:
+                                    upl.seek(0); df = pd.read_excel(upl, header=header_idx)
 
-                            df.columns = [limpar_coluna(c) for c in df.columns]
-                            
-                            mapa_colunas = {
-                                'empresa solicitante': 'empresa', 'cliente': 'empresa',
-                                'tipo documento': 'documento', 'doc': 'documento',
-                                'motivo recusa': 'motivo', 'motivo da recusa': 'motivo', 'justificativa': 'motivo',
-                                'frase': 'conteudo', 'texto': 'conteudo', 'mensagem': 'conteudo', 'frase de recusa': 'conteudo', 'conteudo': 'conteudo',
-                                'revisado por': 'revisado_por', 'revisor': 'revisado_por', 'validado por': 'revisado_por',
-                                'data': 'data_revisao', 'data revisao': 'data_revisao', 'data da revisao': 'data_revisao'
-                            }
-                            df.rename(columns=mapa_colunas, inplace=True)
+                        df.columns = [limpar_coluna(c) for c in df.columns]
+                        mapa_colunas = {'empresa solicitante':'empresa','cliente':'empresa','tipo documento':'documento','doc':'documento','motivo recusa':'motivo','motivo da recusa':'motivo','justificativa':'motivo','frase':'conteudo','texto':'conteudo','mensagem':'conteudo','frase de recusa':'conteudo','revisado por':'revisado_por','revisor':'revisado_por','validado por':'revisado_por','data':'data_revisao','data revisao':'data_revisao','data da revisao':'data_revisao'}
+                        df.rename(columns=mapa_colunas, inplace=True)
 
-                            cols_obrigatorias = ['empresa', 'documento', 'motivo', 'conteudo']
-                            colunas_encontradas = df.columns.tolist()
-                            falta = [c for c in cols_obrigatorias if c not in colunas_encontradas]
-                            
-                            if falta:
-                                st.error(f"Erro: Faltam as colunas {falta}.")
-                                st.write("Colunas encontradas:", colunas_encontradas)
-                            else:
-                                novos = []
-                                db_set = set([str(f['conteudo']).strip() for f in buscar_dados()])
-                                for _, r in df.iterrows():
-                                    if pd.isna(r['conteudo']) or str(r['conteudo']).strip() == "": continue
-                                    emp = padronizar(str(r['empresa']))
-                                    doc = padronizar(str(r['documento']))
-                                    mot = padronizar(str(r['motivo']))
-                                    cont = padronizar(str(r['conteudo']), 'frase')
-                                    rev_por = user['username']
-                                    rev_data = datetime.now().strftime('%Y-%m-%d')
-                                    
-                                    if 'revisado_por' in df.columns and pd.notna(r['revisado_por']): rev_por = str(r['revisado_por'])
-                                    if 'data_revisao' in df.columns and pd.notna(r['data_revisao']):
-                                        try:
-                                            val_data = r['data_revisao']
-                                            if isinstance(val_data, datetime): rev_data = val_data.strftime('%Y-%m-%d')
-                                            else: rev_data = str(val_data).split('T')[0]
-                                        except: pass
+                        cols_obrigatorias = ['empresa', 'documento', 'motivo', 'conteudo']
+                        if not all(c in df.columns for c in cols_obrigatorias):
+                            st.error("Colunas obrigatórias não encontradas.")
+                        else:
+                            novos = []; db_set = set([str(f['conteudo']).strip() for f in buscar_dados()])
+                            for _, r in df.iterrows():
+                                if pd.isna(r['conteudo']) or str(r['conteudo']).strip()=="": continue
+                                emp = padronizar(str(r['empresa'])); doc = padronizar(str(r['documento'])); mot = padronizar(str(r['motivo'])); cont = padronizar(str(r['conteudo']),'frase')
+                                rev_por = user['username']; rev_data = datetime.now().strftime('%Y-%m-%d')
+                                if 'revisado_por' in df.columns and pd.notna(r['revisado_por']): rev_por = str(r['revisado_por'])
+                                if 'data_revisao' in df.columns and pd.notna(r['data_revisao']):
+                                    try: 
+                                        val_data = r['data_revisao']
+                                        if isinstance(val_data, datetime): rev_data = val_data.strftime('%Y-%m-%d')
+                                        else: rev_data = str(val_data).split('T')[0]
+                                    except: pass
+                                if cont not in db_set:
+                                    novos.append({'empresa':emp,'documento':doc,'motivo':mot,'conteudo':cont,'revisado_por':rev_por,'data_revisao':rev_data})
+                                    db_set.add(cont)
+                            if novos:
+                                supabase.table("frases").insert(novos).execute()
+                                registrar_log(user['username'], "Importação em Massa", f"{len(novos)} itens")
+                                st.success(f"{len(novos)} importados!"); time.sleep(2); st.rerun()
+                            else: st.warning("Nenhuma novidade.")
+                    except Exception as e: st.error(str(e))
 
-                                    if cont not in db_set:
-                                        novos.append({'empresa': emp, 'documento': doc, 'motivo': mot, 'conteudo': cont, 'revisado_por': rev_por, 'data_revisao': rev_data})
-                                        db_set.add(cont)
-                                
-                                if novos:
-                                    supabase.table("frases").insert(novos).execute()
-                                    registrar_log(user['username'], "Importação em Massa", f"{len(novos)} itens")
-                                    st.success(f"{len(novos)} frases importadas!"); time.sleep(2); st.rerun()
-                                else: st.warning("Nenhuma frase nova.")
-                        except Exception as e: st.error(f"Erro: {e}")
-
+        # --- 3. EDITAR / GERENCIAR (Menu Exclusivo) ---
+        elif page == "✏️ Editar / Gerenciar":
+            st.title("Gerenciar Registros")
+            
+            q = st.text_input("🔎 Buscar registro para editar ou excluir...", placeholder="Digite a empresa ou conteúdo")
             dados = buscar_dados()
             lista_final = [f for f in dados if q.lower() in str(f).lower()] if q else dados
             
-            if not lista_final: st.info("Nenhum registro.")
+            if not lista_final:
+                st.info("Nenhum registro encontrado.")
             else:
-                st.caption(f"{len(lista_final)} registros listados")
+                st.caption(f"{len(lista_final)} registros encontrados")
                 for f in lista_final:
                     label_cartao = f"🏢 {f['empresa']}  |  📄 {f['documento']}  |  📌 {f['motivo']}"
                     with st.expander(label_cartao):
@@ -317,10 +282,12 @@ else:
                             fd = c_b.text_input("Documento", f['documento'])
                             fm = st.text_input("Motivo", f['motivo'])
                             fc = st.text_area("Conteúdo", f['conteudo'])
+                            
                             c_save, c_del = st.columns([4, 1])
-                            if c_save.form_submit_button("💾 Salvar", use_container_width=True):
+                            if c_save.form_submit_button("💾 Salvar Alterações", use_container_width=True):
                                 supabase.table("frases").update({
-                                    "empresa":padronizar(fe),"documento":padronizar(fd),"motivo":padronizar(fm),"conteudo":padronizar(fc,"frase"),
+                                    "empresa":padronizar(fe),"documento":padronizar(fd),
+                                    "motivo":padronizar(fm),"conteudo":padronizar(fc,"frase"),
                                     "revisado_por":user['username'],"data_revisao":datetime.now().strftime('%Y-%m-%d')
                                 }).eq("id", f['id']).execute()
                                 registrar_log(user['username'], "Editou Frase", str(f['id'])); st.rerun()
@@ -328,9 +295,9 @@ else:
                                 supabase.table("frases").delete().eq("id", f['id']).execute()
                                 registrar_log(user['username'], "Excluiu Frase", str(f['id'])); st.rerun()
 
-        # --- PÁGINA 3: GERENCIADOR ---
-        elif page == "⚙️ Gerenciador" and user['admin']:
-            st.title("Gerenciador do Sistema")
+        # --- 4. ADMINISTRAÇÃO ---
+        elif page == "⚙️ Administração" and user['admin']:
+            st.title("Painel Admin")
             t1, t2 = st.tabs(["Usuários", "Segurança e Dados"])
             with t1:
                 c_new, c_list = st.columns([1, 2])
