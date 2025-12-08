@@ -26,7 +26,7 @@ except:
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. CSS AVANÇADO (MODERN UI & CARDS PADRONIZADOS)
+# 2. CSS AVANÇADO (MODERN UI)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -50,39 +50,6 @@ st.markdown("""
         align-items: center;
         justify-content: space-between;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    }
-    
-    /* --- KPIS / MÉTRICAS (CORREÇÃO DE TAMANHO) --- */
-    div[data-testid="stMetric"] {
-        background-color: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-        transition: transform 0.2s;
-        
-        /* O SEGREDO DO TAMANHO IGUAL: */
-        min-height: 140px; /* Força uma altura mínima igual para todos */
-        display: flex;
-        flex-direction: column;
-        justify-content: center; /* Centraliza o conteúdo verticalmente */
-        width: 100%;
-    }
-    div[data-testid="stMetric"]:hover {
-        transform: translateY(-2px);
-        border-color: #2175D9;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.08);
-    }
-    
-    /* Centralizar o rótulo da métrica (Opcional, mas fica bonito) */
-    div[data-testid="stMetricLabel"] {
-        font-size: 0.9rem !important;
-        color: #64748B !important;
-    }
-    div[data-testid="stMetricValue"] {
-        font-size: 1.8rem !important;
-        font-weight: 700 !important;
-        color: #0F172A !important;
     }
 
     /* CARD DE FRASE (ESTILO) */
@@ -204,7 +171,7 @@ if st.session_state["usuario_logado"] is None:
 # --- ÁREA LOGADA ---
 else:
     user = st.session_state["usuario_logado"]
-    dados_totais = buscar_dados() # Busca dados uma vez para usar nas métricas
+    dados_totais = buscar_dados() # Busca dados
     
     # --- HEADER / NAVBAR ---
     with st.container():
@@ -253,25 +220,18 @@ else:
     
     else:
         # ======================================================================
-        # PÁGINA: BIBLIOTECA
+        # PÁGINA: BIBLIOTECA (SEM MÉTRICAS)
         # ======================================================================
         if page == "Biblioteca":
-            # MÉTRICAS COM TAMANHO PADRONIZADO
-            m1, m2, m3, m4 = st.columns(4)
-            total_frases = len(dados_totais)
-            novas_hoje = len([d for d in dados_totais if d.get('data_revisao') == datetime.now().strftime('%Y-%m-%d')])
+            st.subheader("Biblioteca de Frases")
             
-            m1.metric("Total de Frases", total_frases)
-            m2.metric("Adicionadas Hoje", novas_hoje, delta=novas_hoje if novas_hoje > 0 else None)
-            m3.metric("Minhas Contribuições", len([d for d in dados_totais if d.get('revisado_por') == user['username']]))
-            m4.metric("Empresas Distintas", len(set(d['empresa'] for d in dados_totais)))
-            st.write("")
-            
+            # Busca e Filtros
             with st.container(border=True):
                 c_search, c_filter = st.columns([3, 1])
                 termo = c_search.text_input("Pesquisa Inteligente", placeholder="🔎 Busque por empresa, motivo ou conteúdo...", label_visibility="collapsed")
                 filtro_empresa = c_filter.selectbox("Filtrar Empresa", ["Todas"] + sorted(list(set(d['empresa'] for d in dados_totais))))
 
+            # Lógica de Filtragem
             filtrados = dados_totais
             if filtro_empresa != "Todas": filtrados = [f for f in filtrados if f['empresa'] == filtro_empresa]
             if termo: filtrados = [f for f in filtrados if termo.lower() in str(f).lower()]
