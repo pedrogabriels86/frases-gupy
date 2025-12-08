@@ -11,13 +11,8 @@ from PIL import Image
 # ==============================================================================
 # 🖼️ ÁREA DAS IMAGENS
 # ==============================================================================
-
-# 1. LINK DO FAVICON (Ícone pequeno da aba) - ATUALIZADO
 FAVICON_URL = "https://urmwvabkikftsefztadb.supabase.co/storage/v1/object/public/imagens/favicon.png"
-
-# 2. LINK DA LOGO (Imagem do menu)
 LOGO_URL = "https://urmwvabkikftsefztadb.supabase.co/storage/v1/object/public/imagens/logo_gupy.png.png"
-
 # ==============================================================================
 
 # --- TENTA CARREGAR O FAVICON ---
@@ -31,13 +26,25 @@ except: pass
 # --- 1. CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Frases de Recusa - Gupy", page_icon=favicon, layout="wide")
 
-# --- CSS MODERNO E LIMPO ---
+# --- CSS MODERNO (COM REMOÇÃO DA BARRA SUPERIOR) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
     * { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #F5F7FA; }
+    
+    /* --- REMOVER BARRA SUPERIOR E RODAPÉ (CLEAN MODE) --- */
+    [data-testid="stHeader"] {
+        display: none;
+    }
+    footer {
+        display: none;
+    }
+    /* Ajustar o espaço que sobra no topo */
+    .block-container {
+        padding-top: 2rem !important;
+    }
     
     /* SIDEBAR */
     section[data-testid="stSidebar"] { background-color: #00122F; }
