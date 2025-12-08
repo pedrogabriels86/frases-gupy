@@ -36,20 +36,11 @@ st.markdown("""
     
     .nav-container { background: white; padding: 1rem 2rem; border-bottom: 1px solid #E2E8F0; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
     
-    /* CARD HEADER AJUSTADO */
+    /* CARD HEADER */
     .frase-header { background-color: white; border-radius: 12px 12px 0 0; border: 1px solid #E2E8F0; border-bottom: none; padding: 15px 20px; }
     
-    /* RODAPÉ DO HEADER (AUTOR) */
-    .card-meta {
-        margin-top: 10px;
-        padding-top: 10px;
-        border-top: 1px solid #F1F5F9;
-        font-size: 0.75rem;
-        color: #94A3B8;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
+    /* RODAPÉ DO CARD (AUTOR) */
+    .card-meta { margin-top: 10px; padding-top: 10px; border-top: 1px solid #F1F5F9; font-size: 0.75rem; color: #94A3B8; display: flex; justify-content: space-between; align-items: center; }
 
     .stCodeBlock { border: 1px solid #E2E8F0; border-top: none; border-radius: 0 0 12px 12px; background-color: white !important; }
     .stButton button { border-radius: 8px; font-weight: 600; transition: all 0.2s; }
@@ -87,7 +78,7 @@ def padronizar(texto, tipo="titulo"): return (str(texto).strip().title() if tipo
 def limpar_coluna(col): return ''.join(c for c in unicodedata.normalize('NFD', str(col).lower().strip()) if unicodedata.category(c) != 'Mn')
 
 # ==============================================================================
-# 4. SISTEMA DE AUTENTICAÇÃO BLINDADO
+# 4. SISTEMA DE AUTENTICAÇÃO
 # ==============================================================================
 cookie_manager = stx.CookieManager(key="main_auth")
 
@@ -108,7 +99,7 @@ if st.session_state["usuario_logado"] is None:
             st.session_state["usuario_logado"] = user_db
 
 # ==============================================================================
-# 5. RENDERIZAÇÃO DAS TELAS
+# 5. RENDERIZAÇÃO
 # ==============================================================================
 
 # --- TELA DE LOGIN ---
@@ -191,8 +182,6 @@ else:
                 for i in range(0, len(filtrados), 2):
                     row_c1, row_c2 = st.columns(2)
                     f1 = filtrados[i]
-                    
-                    # --- MONTAGEM DO CARD 1 ---
                     author1 = f1.get('revisado_por', 'Sistema')
                     date1 = f1.get('data_revisao', '')
                     with row_c1:
@@ -203,16 +192,11 @@ else:
                                 <span class="badge badge-blue">{f1['documento']}</span>
                             </div>
                             <div style="color:#64748B; font-size:0.9rem;"><strong>Motivo:</strong> {f1['motivo']}</div>
-                            
-                            <div class="card-meta">
-                                <span>👤 {author1}</span>
-                                <span>📅 {date1}</span>
-                            </div>
+                            <div class="card-meta"><span>👤 {author1}</span><span>📅 {date1}</span></div>
                         </div>
                         """, unsafe_allow_html=True)
                         st.code(f1['conteudo'], language="text")
 
-                    # --- MONTAGEM DO CARD 2 ---
                     if i + 1 < len(filtrados):
                         f2 = filtrados[i+1]
                         author2 = f2.get('revisado_por', 'Sistema')
@@ -225,11 +209,7 @@ else:
                                     <span class="badge badge-blue">{f2['documento']}</span>
                                 </div>
                                 <div style="color:#64748B; font-size:0.9rem;"><strong>Motivo:</strong> {f2['motivo']}</div>
-                                
-                                <div class="card-meta">
-                                    <span>👤 {author2}</span>
-                                    <span>📅 {date2}</span>
-                                </div>
+                                <div class="card-meta"><span>👤 {author2}</span><span>📅 {date2}</span></div>
                             </div>
                             """, unsafe_allow_html=True)
                             st.code(f2['conteudo'], language="text")
@@ -251,15 +231,13 @@ else:
                             else:
                                 supabase.table("frases").insert({
                                     "empresa":ne, "documento":nd, "motivo":nm, "conteudo":nc, 
-                                    "revisado_por":user['username'], # Manual usa o usuário logado
-                                    "data_revisao":datetime.now().strftime('%Y-%m-%d')
+                                    "revisado_por":user['username'], "data_revisao":datetime.now().strftime('%Y-%m-%d')
                                 }).execute()
                                 registrar_log(user['username'], "Criou Frase", f"{ne}-{nm}"); st.toast("✅ Salvo!"); time.sleep(1); st.cache_data.clear(); st.rerun()
                         else: st.warning("Preencha todos os campos.")
             
-            # --- LÓGICA DE IMPORTAÇÃO ATUALIZADA ---
             with tab_imp:
-                st.info("Colunas sugeridas: Empresa, Documento, Motivo, Conteudo, Revisado Por (Opcional).")
+                st.info("Colunas sugeridas: Empresa, Documento, Motivo, Conteudo, Revisado Por.")
                 upl = st.file_uploader("Arquivo", type=['csv','xlsx'])
                 if upl and st.button("Processar Arquivo", type="primary"):
                     try:
@@ -269,58 +247,36 @@ else:
                         else: df = pd.read_excel(upl)
                         
                         df.columns = [limpar_coluna(c) for c in df.columns]
-                        # Mapeamento incluindo 'revisado por'
                         mapa = {
-                            'empresa solicitante':'empresa','cliente':'empresa',
-                            'tipo documento':'documento','doc':'documento',
-                            'motivo recusa':'motivo','justificativa':'motivo',
-                            'frase':'conteudo','texto':'conteudo','mensagem':'conteudo',
-                            'revisado por': 'revisado_por', 'autor': 'revisado_por', 'responsavel': 'revisado_por',
-                            'data': 'data_revisao', 'data revisao': 'data_revisao'
+                            'empresa solicitante':'empresa','cliente':'empresa','tipo documento':'documento',
+                            'motivo recusa':'motivo','frase':'conteudo','texto':'conteudo',
+                            'revisado por': 'revisado_por', 'autor': 'revisado_por'
                         }
                         df.rename(columns=mapa, inplace=True)
                         
                         if not all(c in df.columns for c in ['empresa', 'documento', 'motivo', 'conteudo']): 
-                            st.error("Colunas obrigatórias não encontradas (Empresa, Documento, Motivo, Conteúdo).")
+                            st.error("Colunas obrigatórias ausentes.")
                         else:
                             novos = []; db_conteudos = set(d['conteudo'] for d in dados_totais)
                             for _, row in df.iterrows():
                                 cont = padronizar(str(row['conteudo']), 'frase')
                                 if cont and cont not in db_conteudos:
-                                    
-                                    # LÓGICA DE DECISÃO DO AUTOR
-                                    # Se a planilha tem 'revisado_por' e não está vazio, usa ele.
-                                    # Senão, usa o usuário logado.
                                     autor_final = user['username']
-                                    if 'revisado_por' in df.columns and pd.notna(row['revisado_por']) and str(row['revisado_por']).strip() != '':
-                                        autor_final = str(row['revisado_por'])
+                                    if 'revisado_por' in df.columns and pd.notna(row['revisado_por']):
+                                        val = str(row['revisado_por']).strip()
+                                        if val: autor_final = val
                                     
-                                    # DATA
-                                    data_final = datetime.now().strftime('%Y-%m-%d')
-                                    if 'data_revisao' in df.columns and pd.notna(row['data_revisao']):
-                                        try: 
-                                            # Tenta converter se vier datetime do Excel
-                                            val = row['data_revisao']
-                                            if isinstance(val, datetime): data_final = val.strftime('%Y-%m-%d')
-                                            else: data_final = str(val).split('T')[0] # Tenta pegar só YYYY-MM-DD
-                                        except: pass
-
                                     novos.append({
-                                        "empresa": padronizar(str(row['empresa'])), 
-                                        "documento": padronizar(str(row['documento'])), 
-                                        "motivo": padronizar(str(row['motivo'])), 
-                                        "conteudo": cont, 
-                                        "revisado_por": autor_final, # Usa a lógica acima
-                                        "data_revisao": data_final
+                                        "empresa": padronizar(str(row['empresa'])), "documento": padronizar(str(row['documento'])), 
+                                        "motivo": padronizar(str(row['motivo'])), "conteudo": cont, 
+                                        "revisado_por": autor_final, "data_revisao": datetime.now().strftime('%Y-%m-%d')
                                     })
                                     db_conteudos.add(cont)
-                            
                             if novos: 
                                 supabase.table("frases").insert(novos).execute()
                                 registrar_log(user['username'], "Importação", f"{len(novos)}")
-                                st.success(f"{len(novos)} importados!")
-                                st.cache_data.clear()
-                            else: st.warning("Nenhuma frase nova encontrada.")
+                                st.success(f"{len(novos)} importados!"); st.cache_data.clear()
+                            else: st.warning("Nenhuma frase nova.")
                     except Exception as e: st.error(f"Erro: {e}")
 
         # PÁGINA: MANUTENÇÃO
@@ -336,17 +292,13 @@ else:
                             c1, c2, c3 = st.columns([1,1,1])
                             ne = c1.text_input("Empresa", item['empresa']); nd = c2.text_input("Documento", item['documento']); nm = c3.text_input("Motivo", item['motivo'])
                             nc = st.text_area("Conteúdo", item['conteudo'])
-                            
-                            # Opção de editar o Autor também na manutenção, se necessário
                             c_auth, c_date = st.columns(2)
                             na = c_auth.text_input("Autor/Revisor", item.get('revisado_por', user['username']))
-                            
                             c_s, c_d = st.columns([4, 1])
                             if c_s.form_submit_button("💾 Salvar", type="primary"):
                                 supabase.table("frases").update({
                                     "empresa": ne, "documento": nd, "motivo": nm, "conteudo": nc, 
-                                    "revisado_por": na, # Salva o autor editado ou o atual
-                                    "data_revisao": datetime.now().strftime('%Y-%m-%d')
+                                    "revisado_por": na, "data_revisao": datetime.now().strftime('%Y-%m-%d')
                                 }).eq("id", item['id']).execute()
                                 registrar_log(user['username'], "Edição", str(item['id'])); st.toast("Salvo!"); st.cache_data.clear(); time.sleep(1); st.rerun()
                             if c_d.form_submit_button("🗑️ Excluir"):
@@ -388,4 +340,20 @@ else:
             with tab_logs:
                 logs = supabase.table("logs").select("*").order("data_hora", desc=True).limit(100).execute().data
                 if logs: st.dataframe(pd.DataFrame(logs)[['data_hora', 'usuario', 'acao', 'detalhe']], use_container_width=True, hide_index=True)
+                st.write("---")
+                
+                # ZONA DE PERIGO (APAGAR TUDO)
+                with st.expander("🚨 Zona de Perigo (Apagar Tudo)", expanded=False):
+                    st.warning("⚠️ CUIDADO: Esta ação apagará TODAS as frases do banco de dados. Não é possível desfazer.")
+                    chk = st.text_input("Para confirmar, digite: QUERO APAGAR TUDO")
+                    if st.button("🗑️ APAGAR TODA A BIBLIOTECA", type="primary", use_container_width=True):
+                        if chk == "QUERO APAGAR TUDO":
+                            try:
+                                supabase.table("frases").delete().neq("id", 0).execute()
+                                registrar_log(user['username'], "LIMPEZA TOTAL", "Apagou todas as frases")
+                                st.success("Banco de dados limpo com sucesso!")
+                                time.sleep(2); st.cache_data.clear(); st.rerun()
+                            except Exception as e: st.error(f"Erro ao apagar: {e}")
+                        else: st.error("Texto de confirmação incorreto.")
+                
                 st.write("---"); st.download_button("📥 Backup CSV", data=pd.DataFrame(dados_totais).to_csv(index=False).encode('utf-8'), file_name="backup.csv", mime="text/csv")
