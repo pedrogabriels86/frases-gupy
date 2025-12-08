@@ -35,7 +35,7 @@ st.markdown("""
     
     * { font-family: 'Inter', sans-serif; }
     
-    /* Fundo geral da aplicação (um cinza azulado sutil para contraste) */
+    /* Fundo geral da aplicação */
     .stApp { 
         background-color: #F3F6F9; 
     }
@@ -56,28 +56,25 @@ st.markdown("""
        ESTILO DA COLUNA DO MENU LATERAL (ESQUERDA)
     ======================= */
     div[data-testid="column"]:nth-of-type(1) {
-        /* Gradiente Gupy Profundo */
         background: linear-gradient(160deg, #00122F 0%, #0A2347 100%);
         padding: 2rem 1.5rem;
         min-height: 95vh;
-        border-radius: 0 16px 16px 0; /* Bordas arredondadas apenas na direita */
-        box-shadow: 5px 0 15px rgba(0,0,0,0.1); /* Sombra para dar profundidade */
+        border-radius: 0 16px 16px 0;
+        box-shadow: 5px 0 15px rgba(0,0,0,0.1);
         color: white;
         display: flex;
         flex-direction: column;
     }
     
-    /* Força textos dentro do menu a serem brancos */
     div[data-testid="column"]:nth-of-type(1) * {
         color: white !important;
     }
     
-    /* Separadores mais sutis */
     div[data-testid="column"]:nth-of-type(1) hr {
         border-color: rgba(255,255,255,0.15) !important;
     }
 
-    /* --- ESTILO DOS LINKS DO MENU (RADIO BUTTONS MELHORADOS) --- */
+    /* --- ESTILO DOS LINKS DO MENU --- */
     .stRadio > div { background-color: transparent; }
     
     .stRadio label { 
@@ -93,30 +90,28 @@ st.markdown("""
         cursor: pointer;
     }
     
-    /* Efeito Hover (passar o mouse) */
     .stRadio label:hover {
         background-color: rgba(255,255,255,0.1);
         color: white !important;
-        transform: translateX(5px); /* Pequeno movimento para direita */
+        transform: translateX(5px);
     }
     
-    /* Item Selecionado (Ativo) */
     .stRadio div[role="radiogroup"] > label[data-checked="true"] {
-        background-color: #2175D9 !important; /* Azul Gupy Vibrante */
+        background-color: #2175D9 !important;
         color: white !important;
         font-weight: 600;
         box-shadow: 0 4px 12px rgba(33, 117, 217, 0.3);
     }
-    .stRadio div[role="radiogroup"] > label > div:first-child { display: none; } /* Esconde bolinha */
+    .stRadio div[role="radiogroup"] > label > div:first-child { display: none; }
 
-    /* Botão de Sair (Estilo diferente) */
+    /* Botão de Sair */
     div[data-testid="column"]:nth-of-type(1) .stButton > button {
         background-color: transparent;
         border: 1px solid rgba(255,255,255,0.3);
         color: rgba(255,255,255,0.8) !important;
     }
     div[data-testid="column"]:nth-of-type(1) .stButton > button:hover {
-         background-color: rgba(255, 50, 50, 0.2); /* Avermelhado ao passar o mouse */
+         background-color: rgba(255, 50, 50, 0.2);
          border-color: rgba(255, 50, 50, 0.5);
          color: white !important;
     }
@@ -129,10 +124,10 @@ st.markdown("""
         padding-left: 2rem;
     }
 
-    /* BOTÕES GERAIS (Primary) */
+    /* BOTÕES GERAIS */
     .stButton > button {
         border-radius: 8px; font-weight: 600; border: none;
-        background: linear-gradient(90deg, #2175D9 0%, #175BB5 100%); /* Gradiente sutil no botão */
+        background: linear-gradient(90deg, #2175D9 0%, #175BB5 100%);
         color: white;
         box-shadow: 0 2px 6px rgba(33, 117, 217, 0.25);
         transition: all 0.2s;
@@ -140,24 +135,23 @@ st.markdown("""
     .stButton > button:hover { box-shadow: 0 4px 12px rgba(33, 117, 217, 0.4); transform: translateY(-1px); }
     .stButton > button:active { transform: scale(0.98); }
 
-    /* Botão de Perigo (Delete) - Seletor mais específico */
+    /* Botão de Perigo */
     button[kind="primary"] {
-        background: #EF4444 !important; /* Vermelho */
+        background: #EF4444 !important;
         box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25) !important;
     }
     button[kind="primary"]:hover { background: #DC2626 !important; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4) !important; }
 
-    /* CARTÕES E CONTAINERS */
-    /* Dá uma sombra mais suave e bordas mais arredondadas para os cartões brancos */
+    /* CARTÕES */
     .card-container, div[data-testid="stVerticalBlock"] > div[style*="border"] {
         background: #FFFFFF; 
-        border: 0px solid #E2E8F0; /* Remove borda dura */
+        border: 0px solid #E2E8F0;
         border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.05); /* Sombra suave e difusa */
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
         padding: 24px !important;
     }
     
-    /* Inputs com visual mais limpo */
+    /* Inputs */
     .stTextInput input, .stTextArea textarea {
         border-radius: 8px; border: 1px solid #DCE1E7; background-color: #F8FAFC;
     }
@@ -169,7 +163,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- FUNÇÕES BACKEND (MANTIDAS) ---
+# --- FUNÇÕES BACKEND ---
 try:
     url_db = st.secrets["SUPABASE_URL"]; key_db = st.secrets["SUPABASE_KEY"]
     supabase: Client = create_client(url_db, key_db)
@@ -194,7 +188,7 @@ def limpar_coluna(col):
 # ==============================================================================
 if "usuario_logado" not in st.session_state: st.session_state["usuario_logado"] = None
 
-# --- TELA DE LOGIN (Visual Melhorado) ---
+# --- TELA DE LOGIN ---
 if st.session_state["usuario_logado"] is None:
     c1, c2, c3 = st.columns([1, 1.2, 1])
     with c2:
@@ -209,31 +203,30 @@ if st.session_state["usuario_logado"] is None:
             with st.form("login"):
                 u = st.text_input("Usuário"); s = st.text_input("Senha", type="password")
                 st.write("")
-                if st.form_submit_button("Acessar Plataforma", use_container_width=True):
+                if st.form_submit_button("Entrar na Plataforma", use_container_width=True):
                     user = verificar_login(u, s)
                     if user: st.session_state["usuario_logado"] = user; st.rerun()
                     else: st.error("Credenciais inválidas.")
 
-# --- ÁREA LOGADA (LAYOUT PREMIUM) ---
+# --- ÁREA LOGADA ---
 else:
     user = st.session_state["usuario_logado"]
     
-    # Proporção [1, 5] com espaçamento grande entre colunas
     col_menu, col_content = st.columns([1, 5], gap="large")
     
-    # === MENU LATERAL DETALHADO ===
+    # === MENU LATERAL ===
     with col_menu:
         st.write("")
         if LOGO_URL: st.image(LOGO_URL, use_container_width=True)
         else: st.markdown("## gupy.")
-        st.write(""); st.write("") # Espaço extra
+        st.write(""); st.write("")
 
-        # --- Perfil Visual ---
-        # Usando HTML para criar um bloco de perfil bonito
+        # Perfil Visual
+        avatar_letter = user['username'][0].upper() if user['username'] else "U"
         st.markdown(f"""
             <div style="display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 12px; border-radius: 12px; margin-bottom: 20px;">
                 <div style="width: 40px; height: 40px; background: #2175D9; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 1.2rem; margin-right: 12px;">
-                    {user['username'][0].upper()}
+                    {avatar_letter}
                 </div>
                 <div>
                     <div style="font-size: 0.8rem; opacity: 0.7;">Bem-vindo(a),</div>
@@ -245,11 +238,9 @@ else:
         st.divider()
         st.markdown("<span style='font-size:0.75rem; font-weight:600; letter-spacing:1px; opacity:0.6'>MENU PRINCIPAL</span>", unsafe_allow_html=True)
 
-        # Navegação com Ícones (Emojis)
         opcoes = ["📂  Biblioteca de Frases", "📝  Gestão & Criação", "⚙️  Administração"] if user['admin'] else ["📂  Biblioteca de Frases", "📝  Gestão & Criação"]
         page = st.radio("Navegação", opcoes, label_visibility="collapsed")
         
-        # Espaço flexível para empurrar o botão de sair para baixo
         st.write(""); st.write(""); st.write(""); st.write(""); 
 
         st.divider()
@@ -258,14 +249,13 @@ else:
 
     # === CONTEÚDO PRINCIPAL ===
     with col_content:
-        # Validação de Senha (Mantida, mas dentro de um card bonito)
         if user.get('trocar_senha'):
              with st.container(border=True):
-                st.warning("⚠️ Segurança: Você precisa redefinir sua senha."); n1=st.text_input("Nova Senha", type="password"); n2=st.text_input("Confirmar Senha", type="password")
+                st.warning("⚠️ Segurança: Redefina sua senha"); n1=st.text_input("Nova Senha", type="password"); n2=st.text_input("Confirmar Senha", type="password")
                 if st.button("Atualizar Senha"): 
                     if n1==n2 and n1: supabase.table("usuarios").update({"senha":n1,"trocar_senha":False}).eq("id",user['id']).execute(); user['trocar_senha']=False; st.toast("Senha atualizada!"); time.sleep(1); st.rerun()
         else:
-            # --- PÁGINA 1: BIBLIOTECA (Com Badges Coloridos) ---
+            # --- PÁGINA 1: BIBLIOTECA ---
             if "📂" in page:
                 c_tit, c_search = st.columns([1.5, 2])
                 with c_tit: st.title("Biblioteca de Frases")
@@ -282,7 +272,6 @@ else:
                         ci, cc = st.columns([1.3, 3])
                         with ci:
                             st.subheader(f['empresa'])
-                            # Usando Badges HTML para detalhes
                             st.markdown(f"""
                                 <div style='margin-top:10px;'>
                                     <span style='background:#E0F2FE; color:#0369A1; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 500;'>📄 {f['documento']}</span>
@@ -291,22 +280,22 @@ else:
                             """, unsafe_allow_html=True)
 
                             if f.get('revisado_por'): 
-                                try: dt = datetime.strptime(f['data_revisao'], '%Y-%m-%d').strftime('%d/%m/%Y'); 
-                                # Badge Verde para Revisado
-                                st.markdown(f"<div style='margin-top:12px;'><span style='background:#DCFCE7; color:#15803D; padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;'>✔ Revisado por {f['revisado_por']} em {dt}</span></div>", unsafe_allow_html=True)
+                                try: 
+                                    dt = datetime.strptime(f['data_revisao'], '%Y-%m-%d').strftime('%d/%m/%Y')
+                                    # CORREÇÃO DA SINTAXE AQUI:
+                                    st.markdown(f"<div style='margin-top:12px;'><span style='background:#DCFCE7; color:#15803D; padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;'>✔ Revisado por {f['revisado_por']} em {dt}</span></div>", unsafe_allow_html=True)
                                 except: pass
                         with cc: st.code(f['conteudo'], language="text")
 
-            # --- PÁGINA 2: GESTÃO (Com Tabs mais bonitas) ---
+            # --- PÁGINA 2: GESTÃO ---
             elif "📝" in page:
                 st.title("Gestão & Criação")
-                # Tabs do Streamlit já são bonitas, vão se adaptar ao tema
                 t_add, t_manage = st.tabs(["➕ Cadastrar Nova", "✏️ Gerenciar Existentes"])
                 
                 with t_add:
                     with st.container(border=True):
                         st.subheader("Nova Frase")
-                        with st.form("quick_add", border=False): # Remove borda interna do form
+                        with st.form("quick_add", border=False):
                             c1, c2, c3 = st.columns(3)
                             ne = c1.text_input("Empresa"); nd = c2.text_input("Documento"); nm = c3.text_input("Motivo")
                             nc = st.text_area("Conteúdo da Frase", height=120, placeholder="Escreva a frase de recusa aqui...")
@@ -326,7 +315,6 @@ else:
                          with st.popover("📂 Importação em Massa (CSV/Excel)", use_container_width=True):
                             upl = st.file_uploader("Carregar arquivo", type=['csv','xlsx'])
                             if upl and st.button("Iniciar Processamento", use_container_width=True):
-                                # Lógica de Importação Mantida (Funcional)
                                 try:
                                     if upl.name.endswith('.csv'):
                                         try: df = pd.read_csv(upl); 
@@ -372,7 +360,6 @@ else:
                                 if cs.form_submit_button("💾 Salvar Alterações", use_container_width=True):
                                     supabase.table("frases").update({"empresa":padronizar(fe),"documento":padronizar(fd),"motivo":padronizar(fm),"conteudo":padronizar(fc,"frase"),"revisado_por":user['username'],"data_revisao":datetime.now().strftime('%Y-%m-%d')}).eq("id", f['id']).execute()
                                     registrar_log(user['username'], "Edit", str(f['id'])); st.rerun()
-                                # Botão de excluir vermelho (kind="primary" ativa o CSS vermelho)
                                 if cd.form_submit_button("🗑️ Excluir", type="primary", use_container_width=True):
                                     supabase.table("frases").delete().eq("id", f['id']).execute()
                                     registrar_log(user['username'], "Delete", str(f['id'])); st.rerun()
