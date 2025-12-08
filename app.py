@@ -336,3 +336,4 @@ else:
                 logs = supabase.table("logs").select("*").order("data_hora", desc=True).limit(100).execute().data
                 if logs: st.dataframe(pd.DataFrame(logs)[['data_hora', 'usuario', 'acao', 'detalhe']], use_container_width=True, hide_index=True)
                 st.write("---"); st.download_button("📥 Backup CSV", data=pd.DataFrame(dados_totais).to_csv(index=False).encode('utf-8'), file_name="backup.csv", mime="text/csv")
+
