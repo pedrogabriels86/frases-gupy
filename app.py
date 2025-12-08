@@ -25,7 +25,7 @@ except: pass
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. CSS "NAVBAR FIXA" (SOLUÇÃO DEFINITIVA DE LAYOUT)
+# 2. CSS "NUCLEAR" (ELIMINAÇÃO TOTAL DE ESPAÇOS)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -34,42 +34,31 @@ st.markdown("""
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #F8FAFC; }
     
-    /* 1. ESCONDER TUDO QUE É DO STREAMLIT NO TOPO */
+    /* 1. Ocultar Cabeçalho, Toolbar e Decoração Padrão */
     header[data-testid="stHeader"] { display: none !important; }
     div[data-testid="stToolbar"] { display: none !important; }
     div[data-testid="stDecoration"] { display: none !important; }
+    footer { display: none !important; }
 
-    /* 2. BARRA DE NAVEGAÇÃO FLUTUANTE (FIXA NO TOPO) */
-    .nav-wrapper {
-        position: fixed; /* Fixa na tela, não rola com a página */
-        top: 0;
-        left: 0;
-        width: 100vw; /* Largura total da tela */
-        height: 80px; /* Altura fixa definida */
-        background-color: #FFFFFF;
-        border-bottom: 1px solid #E2E8F0;
-        z-index: 999999; /* Garante que fica acima de tudo */
-        padding: 0 3rem; /* Espaçamento lateral */
-        
-        /* Flexbox para alinhar itens */
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.03);
-    }
-
-    /* 3. EMPURRAR O CONTEÚDO DA PÁGINA PARA BAIXO */
-    /* Como o menu é 'fixed', ele sai do fluxo. Precisamos abrir espaço para ele não tapar o conteúdo. */
+    /* 2. Puxar o conteúdo para o topo absoluto */
     .block-container {
-        padding-top: 100px !important; /* 80px do menu + 20px de respiro */
+        padding-top: 1rem !important; /* Apenas um pequeno respiro no topo */
         padding-bottom: 5rem;
+        margin-top: 0 !important;
         max-width: 100%;
     }
-
-    /* AJUSTES INTERNOS DO MENU */
-    /* Remove margens extras dos componentes dentro do menu */
-    .nav-wrapper [data-testid="stVerticalBlock"] { gap: 0 !important; }
     
+    /* 3. Estilo do Container do Menu (Visual de Header) */
+    /* Cria uma área branca com borda no topo para o menu */
+    div[data-testid="stVerticalBlock"] > div:first-child {
+        background-color: white;
+        border-bottom: 1px solid #E2E8F0;
+        padding: 1rem 2rem;
+        margin: -1rem -5rem 2rem -5rem; /* Expande para as laterais e compensa o padding do container */
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+        z-index: 100;
+    }
+
     /* ESTILIZAÇÃO DO MENU (ABAS) */
     .stRadio > div[role="radiogroup"] {
         display: flex;
@@ -77,7 +66,7 @@ st.markdown("""
         background: transparent;
         border: none;
         padding: 0;
-        margin-top: 12px; /* Pequeno ajuste visual */
+        justify-content: center; /* Centraliza o menu */
     }
     .stRadio > div[role="radiogroup"] label > div:first-child { display: none; }
     .stRadio > div[role="radiogroup"] label {
@@ -106,9 +95,6 @@ st.markdown("""
     .stButton button { border-radius: 6px; font-weight: 600; transition: all 0.2s; height: auto; padding: 0.4rem 1rem; }
     .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
     .badge-blue { background: #DBEAFE; color: #1E40AF; }
-    
-    /* ESCONDER O RODAPÉ PADRÃO E O TOOLBAR */
-    footer { display: none; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -197,40 +183,35 @@ else:
     user = st.session_state["usuario_logado"]
     dados_totais = buscar_dados()
     
-    # --- HEADER PROFISSIONAL (FIXO NO TOPO) ---
-    # Container HTML Puro para garantir posição fixa
-    st.markdown('<div class="nav-wrapper">', unsafe_allow_html=True)
-    
-    c_logo, c_menu, c_user = st.columns([1, 3, 1], vertical_alignment="center")
-    
-    with c_logo:
-         if LOGO_URL: st.image(LOGO_URL, width=90) 
-         else: st.markdown("### Gupy")
-
-    with c_menu:
-        opcoes_map = {"Biblioteca": "📂 Biblioteca", "Adicionar": "➕ Adicionar", "Manutenção": "✏️ Gestão"}
-        if user['admin']: opcoes_map["Admin"] = "⚙️ Admin"
+    # --- HEADER PROFISSIONAL (NATIVO E ALINHADO) ---
+    # Usamos st.container para agrupar o menu. O CSS acima (div:first-child) 
+    # vai transformar este container numa barra branca no topo.
+    with st.container():
+        c_logo, c_menu, c_user = st.columns([1, 3, 1], vertical_alignment="center")
         
-        opcoes_labels = list(opcoes_map.values())
-        page_sel = st.radio("Menu", options=opcoes_labels, horizontal=True, label_visibility="collapsed")
-        page = [k for k, v in opcoes_map.items() if v == page_sel][0]
+        with c_logo:
+             if LOGO_URL: st.image(LOGO_URL, width=90) 
+             else: st.markdown("### Gupy")
 
-    with c_user:
-        c_name, c_btn = st.columns([2, 1], vertical_alignment="center")
-        with c_name:
-            st.markdown(f"<div style='text-align:right; font-size:0.85rem; color:#475569; line-height:1.2;'>Olá, <br><b>{user['username']}</b></div>", unsafe_allow_html=True)
-        with c_btn:
-            if st.button("Sair", key="btn_logout"):
-                cookie_manager.delete("gupy_user_token")
-                st.session_state["usuario_logado"] = None
-                st.session_state["logout_sync"] = True
-                st.rerun()
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Não precisamos mais de st.write("") aqui, pois o padding-top do container 
-    # já empurra o conteúdo para baixo.
+        with c_menu:
+            opcoes_map = {"Biblioteca": "📂 Biblioteca", "Adicionar": "➕ Adicionar", "Manutenção": "✏️ Gestão"}
+            if user['admin']: opcoes_map["Admin"] = "⚙️ Admin"
+            
+            opcoes_labels = list(opcoes_map.values())
+            page_sel = st.radio("Menu", options=opcoes_labels, horizontal=True, label_visibility="collapsed")
+            page = [k for k, v in opcoes_map.items() if v == page_sel][0]
 
+        with c_user:
+            c_name, c_btn = st.columns([2, 1], vertical_alignment="center")
+            with c_name:
+                st.markdown(f"<div style='text-align:right; font-size:0.85rem; color:#475569; line-height:1.2;'>Olá, <br><b>{user['username']}</b></div>", unsafe_allow_html=True)
+            with c_btn:
+                if st.button("Sair", key="btn_logout"):
+                    cookie_manager.delete("gupy_user_token")
+                    st.session_state["usuario_logado"] = None
+                    st.session_state["logout_sync"] = True
+                    st.rerun()
+    
     # --- LÓGICA DE PÁGINAS ---
 
     if user.get('trocar_senha'):
