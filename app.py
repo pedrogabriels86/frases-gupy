@@ -15,7 +15,7 @@ FAVICON_URL = "https://urmwvabkikftsefztadb.supabase.co/storage/v1/object/public
 LOGO_URL = "https://urmwvabkikftsefztadb.supabase.co/storage/v1/object/public/imagens/logo_gupy.png.png"
 # ==============================================================================
 
-# --- TENTA CARREGAR O FAVICON ---
+# --- CARREGAR FAVICON ---
 favicon = "💙" 
 try:
     response = requests.get(FAVICON_URL, timeout=3)
@@ -26,7 +26,7 @@ except: pass
 # --- 1. CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Frases de Recusa - Gupy", page_icon=favicon, layout="wide")
 
-# --- CSS MODERNO (COM REMOÇÃO TOTAL DE MENUS E RODAPÉS) ---
+# --- CSS MODERNO (CORRIGIDO) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -34,15 +34,23 @@ st.markdown("""
     * { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #F5F7FA; }
     
-    /* --- ESCONDER TUDO QUE É DO STREAMLIT (Menu, Header, Footer) --- */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    [data-testid="stHeader"] { display: none; }
+    /* --- LIMPEZA VISUAL (SEM QUEBRAR O MENU) --- */
     
-    /* Ajustar o topo para não ficar buraco vazio */
+    /* Esconde o menu de 3 pontinhos (Hambúrguer) no topo direito */
+    #MainMenu {visibility: hidden;}
+    
+    /* Esconde o rodapé padrão "Made with Streamlit" */
+    footer {visibility: hidden;}
+    
+    /* Esconde a barra colorida decorativa no topo */
+    header {visibility: hidden;}
+    
+    /* Tenta esconder o botão "Deploy" ou "Manage App" se aparecer */
+    .stDeployButton {display:none;}
+    
+    /* Ajuste para o conteúdo subir, já que tiramos a barra colorida */
     .block-container {
-        padding-top: 2rem !important;
+        padding-top: 1rem !important;
         padding-bottom: 2rem !important;
     }
     
@@ -59,7 +67,7 @@ st.markdown("""
     .stButton > button:hover { background-color: #175BB5; color: white; }
     .stButton > button:active { transform: scale(0.98); }
     
-    /* CARTÕES DE GESTÃO */
+    /* CARTÕES */
     .card-container {
         background: white;
         border: 1px solid #E2E8F0;
@@ -78,15 +86,15 @@ st.markdown("""
         border-color: #2175D9; box-shadow: 0 0 0 2px rgba(33, 117, 217, 0.2);
     }
     
-    /* Expander mais limpo */
+    /* EXPANDER */
     .streamlit-expanderHeader {
         background-color: white;
         border-radius: 6px;
     }
     
-    /* Logo Fallback Text */
+    /* LOGO FALLBACK */
     .logo-text {
-        font-size: 2rem; font-weight: 800; color: #2175D9; letter-spacing: -1px;
+        font-size: 2rem; font-weight: 800; color: #2175D9; letter-spacing: -1px; text-align: center;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -131,7 +139,8 @@ if st.session_state["usuario_logado"] is None:
         with st.container(border=True):
             if LOGO_URL: st.image(LOGO_URL, width=150)
             else: st.markdown("<h1 class='logo-text'>gupy</h1>", unsafe_allow_html=True)
-            st.markdown("<h3 style='text-align:left; color:#555;'>Frases de Recusa</h3>", unsafe_allow_html=True)
+            
+            st.markdown("<h3 style='text-align:center; color:#555;'>Frases de Recusa</h3>", unsafe_allow_html=True)
             with st.form("login"):
                 u = st.text_input("Usuário"); s = st.text_input("Senha", type="password")
                 if st.form_submit_button("Acessar Plataforma", use_container_width=True):
@@ -145,10 +154,13 @@ else:
     with st.sidebar:
         if LOGO_URL: st.image(LOGO_URL, width=140)
         else: st.markdown("## gupy<span style='color:#2175D9'>.</span>", unsafe_allow_html=True)
+        
         st.caption(f"Olá, {user['username']}")
         st.divider()
+        
         opcoes = ["📂 Frases de Recusa", "📝 Adicionar Frases", "⚙️ Gerenciador"] if user['admin'] else ["📂 Frases de Recusa", "📝 Adicionar Frases"]
         page = st.radio("Navegação", opcoes, label_visibility="collapsed")
+        
         st.divider()
         if st.button("Sair", use_container_width=True): st.session_state["usuario_logado"] = None; st.rerun()
 
@@ -222,7 +234,6 @@ else:
                             else:
                                 df = pd.read_excel(upl)
 
-                            # DETECÇÃO DE CABEÇALHO
                             header_idx = -1
                             keywords = ['empresa', 'conteudo', 'frase', 'motivo']
                             
