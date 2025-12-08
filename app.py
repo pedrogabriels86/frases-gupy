@@ -35,13 +35,8 @@ st.markdown("""
     header[data-testid="stHeader"], footer, div[data-testid="stToolbar"] { display: none; }
     
     .nav-container { background: white; padding: 1rem 2rem; border-bottom: 1px solid #E2E8F0; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-    
-    /* CARD HEADER */
     .frase-header { background-color: white; border-radius: 12px 12px 0 0; border: 1px solid #E2E8F0; border-bottom: none; padding: 15px 20px; }
-    
-    /* RODAPÉ DO CARD (AUTOR) */
     .card-meta { margin-top: 10px; padding-top: 10px; border-top: 1px solid #F1F5F9; font-size: 0.75rem; color: #94A3B8; display: flex; justify-content: space-between; align-items: center; }
-
     .stCodeBlock { border: 1px solid #E2E8F0; border-top: none; border-radius: 0 0 12px 12px; background-color: white !important; }
     .stButton button { border-radius: 8px; font-weight: 600; transition: all 0.2s; }
     .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
@@ -78,28 +73,45 @@ def padronizar(texto, tipo="titulo"): return (str(texto).strip().title() if tipo
 def limpar_coluna(col): return ''.join(c for c in unicodedata.normalize('NFD', str(col).lower().strip()) if unicodedata.category(c) != 'Mn')
 
 # ==============================================================================
-# 4. SISTEMA DE AUTENTICAÇÃO
+# 4. SISTEMA DE AUTENTICAÇÃO BLINDADO (CORREÇÃO DO ERRO DUPLICATE KEY)
 # ==============================================================================
-cookie_manager = stx.CookieManager(key="main_auth")
 
+# Inicializa variáveis de controle
 if "usuario_logado" not in st.session_state:
     st.session_state["usuario_logado"] = None
+if "logout_sync" not in st.session_state:
+    st.session_state["logout_sync"] = False
 
+# Instancia o Gerenciador
+cookie_manager = stx.CookieManager(key="main_auth")
+
+# LÓGICA DE RECUPERAÇÃO DE COOKIE
+# Só executa se não estiver logado E se não tiver acabado de deslogar (logout_sync)
 if st.session_state["usuario_logado"] is None:
-    cookies = cookie_manager.get_all()
-    if not cookies:
-        with st.spinner("Conectando..."):
-            time.sleep(1) 
-            cookies = cookie_manager.get_all()
     
-    token = cookies.get("gupy_user_token") if cookies else None
-    if token:
-        user_db = recuperar_usuario_cookie(token)
-        if user_db:
-            st.session_state["usuario_logado"] = user_db
+    # Se acabamos de clicar em sair, resetamos a flag e NÃO verificamos cookies agora
+    if st.session_state["logout_sync"]:
+        st.session_state["logout_sync"] = False
+    
+    else:
+        # Tenta ler cookies normalmente
+        cookies = cookie_manager.get_all()
+        
+        # Retry para garantir leitura correta
+        if not cookies:
+            with st.spinner("Carregando..."):
+                time.sleep(1) 
+                cookies = cookie_manager.get_all()
+        
+        token = cookies.get("gupy_user_token") if cookies else None
+        
+        if token:
+            user_db = recuperar_usuario_cookie(token)
+            if user_db:
+                st.session_state["usuario_logado"] = user_db
 
 # ==============================================================================
-# 5. RENDERIZAÇÃO
+# 5. RENDERIZAÇÃO DAS TELAS
 # ==============================================================================
 
 # --- TELA DE LOGIN ---
@@ -119,6 +131,7 @@ if st.session_state["usuario_logado"] is None:
                 if st.form_submit_button("Acessar Plataforma", use_container_width=True, type="primary"):
                     user = verificar_login(u, s)
                     if user:
+                        # Login OK
                         st.session_state["usuario_logado"] = user
                         expires = datetime.now() + timedelta(days=7)
                         cookie_manager.set("gupy_user_token", u, expires_at=expires)
@@ -148,9 +161,15 @@ else:
             c_u_text, c_u_btn = st.columns([2, 1])
             with c_u_text: st.markdown(f"<div style='text-align:right; font-size:0.85rem; color:#64748B; margin-top:5px;'>Olá, <b>{user['username']}</b></div>", unsafe_allow_html=True)
             with c_u_btn:
+                # LOGOUT COM FLAG DE SINCRONIZAÇÃO
                 if st.button("Sair", key="btn_logout"):
+                    # 1. Apaga o cookie
                     cookie_manager.delete("gupy_user_token")
+                    # 2. Limpa a sessão
                     st.session_state["usuario_logado"] = None
+                    # 3. Ativa a flag para pular a verificação na próxima recarga
+                    st.session_state["logout_sync"] = True
+                    # 4. Recarrega
                     st.rerun()
     st.markdown("---") 
 
@@ -342,7 +361,7 @@ else:
                 if logs: st.dataframe(pd.DataFrame(logs)[['data_hora', 'usuario', 'acao', 'detalhe']], use_container_width=True, hide_index=True)
                 st.write("---")
                 
-                # ZONA DE PERIGO (APAGAR TUDO)
+                # ZONA DE PERIGO
                 with st.expander("🚨 Zona de Perigo (Apagar Tudo)", expanded=False):
                     st.warning("⚠️ CUIDADO: Esta ação apagará TODAS as frases do banco de dados. Não é possível desfazer.")
                     chk = st.text_input("Para confirmar, digite: QUERO APAGAR TUDO")
