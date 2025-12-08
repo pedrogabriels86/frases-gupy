@@ -95,6 +95,22 @@ st.markdown("""
     .stButton button { border-radius: 6px; font-weight: 600; transition: all 0.2s; height: auto; padding: 0.4rem 1rem; }
     .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
     .badge-blue { background: #DBEAFE; color: #1E40AF; }
+
+    /* NOVO: CSS para alinhamento do usuário e botão SAIR no header */
+    .user-info-container {
+        display: flex;
+        align-items: center; /* Centraliza verticalmente o texto e o botão */
+        justify-content: flex-end; /* Joga os elementos para a direita da coluna */
+        gap: 10px; /* Adiciona um pequeno espaço entre o texto e o botão */
+        height: 100%;
+    }
+    .user-text {
+        text-align: right; 
+        font-size: 0.85rem; 
+        color: #475569; 
+        line-height: 1.2;
+    }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -143,7 +159,7 @@ if st.session_state["usuario_logado"] is None:
             with st.spinner("Conectando..."):
                 time.sleep(1) 
                 cookies = cookie_manager.get_all()
-        
+            
         token = cookies.get("gupy_user_token") if cookies else None
         if token:
             user_db = recuperar_usuario_cookie(token)
@@ -184,8 +200,6 @@ else:
     dados_totais = buscar_dados()
     
     # --- HEADER PROFISSIONAL (NATIVO E ALINHADO) ---
-    # Usamos st.container para agrupar o menu. O CSS acima (div:first-child) 
-    # vai transformar este container numa barra branca no topo.
     with st.container():
         c_logo, c_menu, c_user = st.columns([1, 3, 1], vertical_alignment="center")
         
@@ -201,16 +215,29 @@ else:
             page_sel = st.radio("Menu", options=opcoes_labels, horizontal=True, label_visibility="collapsed")
             page = [k for k, v in opcoes_map.items() if v == page_sel][0]
 
+        # ----------------------------------------------------
+        # AJUSTE DE LAYOUT APLICADO AQUI (Usando Flexbox no CSS)
+        # ----------------------------------------------------
         with c_user:
-            c_name, c_btn = st.columns([2, 1], vertical_alignment="center")
-            with c_name:
-                st.markdown(f"<div style='text-align:right; font-size:0.85rem; color:#475569; line-height:1.2;'>Olá, <br><b>{user['username']}</b></div>", unsafe_allow_html=True)
-            with c_btn:
-                if st.button("Sair", key="btn_logout"):
-                    cookie_manager.delete("gupy_user_token")
-                    st.session_state["usuario_logado"] = None
-                    st.session_state["logout_sync"] = True
-                    st.rerun()
+            # Usamos CSS Flexbox (classe .user-info-container) para alinhar o texto e o botão 'Sair' verticalmente
+            st.markdown(
+                """
+                <div class="user-info-container">
+                """, unsafe_allow_html=True
+            )
+            
+            # 1. Container do Texto do Usuário (classe .user-text)
+            st.markdown(f"<div class='user-text'>Olá, <br><b>{user['username']}</b></div>", unsafe_allow_html=True)
+
+            # 2. Botão 'Sair'
+            if st.button("Sair", key="btn_logout"):
+                cookie_manager.delete("gupy_user_token")
+                st.session_state["usuario_logado"] = None
+                st.session_state["logout_sync"] = True
+                st.rerun()
+
+            # Fechando o container Flexbox
+            st.markdown("</div>", unsafe_allow_html=True)
     
     # --- LÓGICA DE PÁGINAS ---
 
@@ -230,7 +257,8 @@ else:
             with st.container(border=True):
                 c_search, c_filter = st.columns([3, 1], vertical_alignment="bottom")
                 termo = c_search.text_input("Pesquisa Inteligente", placeholder="🔎 Busque por empresa, motivo ou conteúdo...", label_visibility="collapsed")
-                filtro_empresa = c_filter.selectbox("Filtrar Empresa", ["Todas"] + sorted(list(set(d['empresa'] for d in dados_totais))))
+                filtro_empresa = c_filter.selectbox("Filtrar Empresa", ["Todas"] + sorted(list(set(d['empresa'] for d in dados_totais))), label_visibility="collapsed")
+                # Adicionado label_visibility="collapsed" no selectbox para alinhamento melhor.
 
             filtrados = dados_totais
             if filtro_empresa != "Todas": filtrados = [f for f in filtrados if f['empresa'] == filtro_empresa]
