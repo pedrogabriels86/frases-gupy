@@ -622,3 +622,4 @@ else:
             render_manutencao(dados_totais, user)
         elif page == "Admin" and user['admin']:
             render_admin(user, dados_totais)
+
