@@ -108,8 +108,11 @@ else:
         st.caption(f"Olá, {user['username']}")
         st.divider()
         
-        # MENU SEM A PALAVRA "MENU" (label_visibility="collapsed")
-        opcoes = ["Biblioteca", "Gestão Inteligente", "Administração"] if user['admin'] else ["Biblioteca", "Gestão Inteligente"]
+        # MENU RENOMEADO COM ÍCONES
+        # Admin vê: Frases de Recusa, Adicionar Frases, Gerenciador
+        # User vê: Frases de Recusa, Adicionar Frases
+        opcoes = ["📂 Frases de Recusa", "📝 Adicionar Frases", "⚙️ Gerenciador"] if user['admin'] else ["📂 Frases de Recusa", "📝 Adicionar Frases"]
+        
         page = st.radio("Navegação", opcoes, label_visibility="collapsed")
         
         st.divider()
@@ -121,9 +124,9 @@ else:
             if n1==n2 and n1: supabase.table("usuarios").update({"senha":n1,"trocar_senha":False}).eq("id",user['id']).execute(); user['trocar_senha']=False; st.rerun()
 
     else:
-        # --- BIBLIOTECA ---
-        if page == "Biblioteca":
-            st.title("Biblioteca de Frases") # Título alterado conforme pedido
+        # --- PÁGINA 1: FRASES DE RECUSA ---
+        if page == "📂 Frases de Recusa":
+            st.title("Frases de Recusa")
             c_busca, c_filtro = st.columns([2,1])
             termo = c_busca.text_input("Busca Rápida", placeholder="🔎 Digite para pesquisar...", label_visibility="collapsed")
             dados = buscar_dados()
@@ -143,12 +146,13 @@ else:
                     with col_cont:
                         st.code(f['conteudo'], language="text")
 
-        # --- GESTÃO INTELIGENTE ---
-        elif page == "Gestão Inteligente":
+        # --- PÁGINA 2: ADICIONAR FRASES ---
+        elif page == "📝 Adicionar Frases":
             c_head, c_btn = st.columns([3, 1])
-            c_head.title("Gestão de Registros")
+            c_head.title("Adicionar Frases")
             
-            with st.expander("➕  ADICIONAR NOVA FRASE (Clique para abrir)", expanded=False):
+            # ÁREA DE ADIÇÃO (EXPANDIDA POR PADRÃO OU NÃO, AQUI DEIXEI FECHADA PARA LIMPEZA)
+            with st.expander("➕  CLIQUE AQUI PARA ADICIONAR NOVA FRASE", expanded=False):
                 with st.form("quick_add"):
                     c1, c2, c3 = st.columns(3)
                     ne = c1.text_input("Empresa"); nd = c2.text_input("Documento"); nm = c3.text_input("Motivo")
@@ -167,8 +171,9 @@ else:
                                 st.success("Adicionado!"); time.sleep(1); st.rerun()
 
             st.write("")
+            st.markdown("#### Gerenciar Existentes")
             col_search, col_upload = st.columns([2, 1])
-            q = col_search.text_input("🔎 Buscar registro para editar...", placeholder="Digite palavras-chave")
+            q = col_search.text_input("🔎 Buscar registro para editar ou excluir...", placeholder="Digite palavras-chave")
             
             with col_upload:
                 with st.popover("📂 Importar Excel/CSV", use_container_width=True):
@@ -198,7 +203,7 @@ else:
             if not lista_final:
                 st.info("Nenhum registro encontrado.")
             else:
-                st.markdown(f"**Encontrados:** {len(lista_final)}")
+                st.caption(f"{len(lista_final)} registros listados")
                 for f in lista_final:
                     label_cartao = f"🏢 {f['empresa']}  |  📄 {f['documento']}  |  📌 {f['motivo']}"
                     with st.expander(label_cartao):
@@ -221,21 +226,22 @@ else:
                                 supabase.table("frases").delete().eq("id", f['id']).execute()
                                 registrar_log(user['username'], "Delete", str(f['id'])); st.rerun()
 
-        # --- ADMINISTRAÇÃO ---
-        elif page == "Administração" and user['admin']:
-            st.title("Painel Admin")
-            t1, t2 = st.tabs(["Usuários", "Sistema"])
+        # --- PÁGINA 3: GERENCIADOR ---
+        elif page == "⚙️ Gerenciador" and user['admin']:
+            st.title("Gerenciador do Sistema")
+            t1, t2 = st.tabs(["Usuários", "Segurança e Dados"])
             with t1:
                 c_new, c_list = st.columns([1, 2])
                 with c_new:
                     with st.container(border=True):
-                        st.subheader("Novo")
+                        st.subheader("Novo Usuário")
                         nu = st.text_input("Nome"); ns = st.text_input("Senha"); na = st.checkbox("Admin")
                         if st.button("Criar User", use_container_width=True):
                             supabase.table("usuarios").insert({"username":nu,"senha":ns,"admin":na,"trocar_senha":True}).execute()
                             registrar_log(user['username'], "New User", nu); st.rerun()
                 with c_list:
                     users = buscar_usuarios()
+                    st.subheader("Lista de Usuários")
                     for u in users:
                         with st.expander(f"{u['username']} {'(Admin)' if u['admin'] else ''}"):
                             c_x, c_y = st.columns(2)
@@ -245,13 +251,18 @@ else:
                             if u['username'] != user['username'] and c_y.button("Excluir", key=f"d{u['id']}", type="primary"):
                                 supabase.table("usuarios").delete().eq("id", u['id']).execute(); st.rerun()
             with t2:
-                st.subheader("Segurança")
+                st.subheader("Logs de Auditoria")
                 logs = supabase.table("logs").select("*").order("data_hora", desc=True).limit(50).execute().data
                 if logs: st.dataframe(pd.DataFrame(logs)[['data_hora','usuario','acao','detalhe']], use_container_width=True, height=200)
+                
+                st.write("---")
+                st.subheader("Backup")
                 full_data = buscar_dados()
-                if full_data: st.download_button("📥 Backup (CSV)", pd.DataFrame(full_data).to_csv(index=False).encode('utf-8'), "backup.csv", "text/csv")
-                st.divider()
-                check = st.text_input("Para limpar frases digite: QUERO APAGAR TUDO")
+                if full_data: st.download_button("📥 Baixar CSV (Backup)", pd.DataFrame(full_data).to_csv(index=False).encode('utf-8'), "backup.csv", "text/csv")
+                
+                st.write("---")
+                st.subheader("Zona de Perigo")
+                check = st.text_input("Para limpar todas as frases digite: QUERO APAGAR TUDO")
                 if st.button("LIMPAR BANCO DE FRASES", type="primary"):
                     if check == "QUERO APAGAR TUDO":
                         supabase.table("frases").delete().neq("id", 0).execute()
