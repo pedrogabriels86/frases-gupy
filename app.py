@@ -25,68 +25,67 @@ except: pass
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. CSS PROFISSIONAL (MENU MODERNO & HEADER FIXO)
+# 2. CSS "NUCLEAR" (ZERO ESPAÇOS NO TOPO)
 # ==============================================================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
-    /* GERAL */
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #F8FAFC; }
     
-    /* REMOVER ITENS PADRÃO DO STREAMLIT */
-    header[data-testid="stHeader"] { display: none; }
-    footer { display: none; }
-    div[data-testid="stToolbar"] { display: none; }
-
-    /* REDUZIR ESPAÇO NO TOPO (CRUCIAL PARA "SUBIR" O MENU) */
+    /* 1. ELIMINAR COMPLETAMENTE O HEADER PADRÃO */
+    header[data-testid="stHeader"] {
+        display: none !important;
+    }
+    
+    /* 2. ZERAR PADDING DO CONTAINER PRINCIPAL */
     .block-container {
-        padding-top: 0rem !important; /* Força zero padding */
+        padding-top: 0px !important;
         padding-bottom: 5rem;
         max-width: 100%;
     }
     
-    /* REMOVER GAPS ADICIONAIS DO CONTAINER PRINCIPAL */
-    div[data-testid="stAppViewContainer"] > .main {
-        padding-top: 0rem !important;
+    /* 3. ZERAR ESPAÇOS SUPERIORES DA VISÃO DO APP */
+    div[data-testid="stAppViewContainer"] > section:first-child {
+        padding-top: 0px !important;
     }
 
-    /* BARRA DE NAVEGAÇÃO FIXA (STICKY HEADER) */
+    /* 4. BARRA DE NAVEGAÇÃO FIXA (STICKY) */
     .nav-wrapper {
         position: sticky;
         top: 0;
-        z-index: 999;
+        z-index: 999999;
         background-color: #FFFFFF;
         border-bottom: 1px solid #E2E8F0;
-        padding: 0.8rem 2rem;
-        /* MARGEM NEGATIVA PARA SUBIR E COBRIR O ESPAÇO VAZIO DO STREAMLIT */
-        margin-top: -3.5rem !important; 
-        margin-left: -4rem;
-        margin-right: -4rem;
-        margin-bottom: 2rem;
+        padding: 12px 2rem; /* Altura ajustada */
+        
+        /* Expande para cobrir as laterais */
+        margin-left: -5rem; 
+        margin-right: -5rem;
+        margin-bottom: 1.5rem;
+        
         box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
         display: flex;
         align-items: center;
         justify-content: space-between;
     }
 
-    /* ESTILIZAÇÃO DO MENU (TRANSFORMAR RADIO EM ABAS) */
+    /* REMOVER GAPS DO BLOCO VERTICAL DO TOPO */
+    div[data-testid="stVerticalBlock"] > div:first-child {
+        margin-top: 0px !important;
+        padding-top: 0px !important;
+    }
+
+    /* ESTILIZAÇÃO DO MENU (ABAS) */
     .stRadio > div[role="radiogroup"] {
         display: flex;
         gap: 8px;
         background: transparent;
         border: none;
-        box-shadow: none;
         padding: 0;
     }
-
-    /* Esconder a bolinha do radio */
-    .stRadio > div[role="radiogroup"] label > div:first-child {
-        display: none; 
-    }
-
-    /* Estilo do botão do menu (Label) */
+    .stRadio > div[role="radiogroup"] label > div:first-child { display: none; }
     .stRadio > div[role="radiogroup"] label {
         background-color: transparent;
         border: 1px solid transparent;
@@ -98,16 +97,9 @@ st.markdown("""
         font-weight: 500;
         font-size: 0.9rem;
     }
-
-    /* Efeito Hover */
-    .stRadio > div[role="radiogroup"] label:hover {
-        background-color: #F1F5F9;
-        color: #0F172A;
-    }
-
-    /* Item Selecionado (Ativo) - Fundo Azul, Texto Branco */
+    .stRadio > div[role="radiogroup"] label:hover { background-color: #F1F5F9; color: #0F172A; }
     .stRadio > div[role="radiogroup"] label[data-checked="true"] {
-        background-color: #2563EB !important; /* Azul Gupy */
+        background-color: #2563EB !important;
         color: white !important;
         font-weight: 600;
         box-shadow: 0 1px 2px rgba(0,0,0,0.1);
@@ -117,13 +109,13 @@ st.markdown("""
     .frase-header { background-color: white; border-radius: 12px 12px 0 0; border: 1px solid #E2E8F0; border-bottom: none; padding: 15px 20px; }
     .card-meta { margin-top: 10px; padding-top: 10px; border-top: 1px solid #F1F5F9; font-size: 0.75rem; color: #94A3B8; display: flex; justify-content: space-between; align-items: center; }
     .stCodeBlock { border: 1px solid #E2E8F0; border-top: none; border-radius: 0 0 12px 12px; background-color: white !important; }
-    
-    /* BOTÕES */
     .stButton button { border-radius: 6px; font-weight: 600; transition: all 0.2s; height: auto; padding: 0.4rem 1rem; }
-    
-    /* BADGES */
     .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
     .badge-blue { background: #DBEAFE; color: #1E40AF; }
+    
+    /* ESCONDER O RODAPÉ PADRÃO E O TOOLBAR */
+    footer { display: none; }
+    div[data-testid="stToolbar"] { display: none; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -215,7 +207,6 @@ else:
     # --- HEADER PROFISSIONAL (FIXO) ---
     st.markdown('<div class="nav-wrapper">', unsafe_allow_html=True)
     
-    # Criamos colunas DENTRO desse wrapper visual
     c_logo, c_menu, c_user = st.columns([1, 3, 1], vertical_alignment="center")
     
     with c_logo:
@@ -227,14 +218,10 @@ else:
         if user['admin']: opcoes_map["Admin"] = "⚙️ Admin"
         
         opcoes_labels = list(opcoes_map.values())
-        
-        # Menu centralizado
         page_sel = st.radio("Menu", options=opcoes_labels, horizontal=True, label_visibility="collapsed")
-        
-        # Identifica a página
         page = [k for k, v in opcoes_map.items() if v == page_sel][0]
 
-    with c_user: # <--- CORRIGIDO AQUI (antes estava c_u_user)
+    with c_user:
         c_name, c_btn = st.columns([2, 1], vertical_alignment="center")
         with c_name:
             st.markdown(f"<div style='text-align:right; font-size:0.85rem; color:#475569; line-height:1.2;'>Olá, <br><b>{user['username']}</b></div>", unsafe_allow_html=True)
@@ -245,9 +232,9 @@ else:
                 st.session_state["logout_sync"] = True
                 st.rerun()
     
-    st.markdown('</div>', unsafe_allow_html=True) # Fecha nav-wrapper
+    st.markdown('</div>', unsafe_allow_html=True)
     
-    # Espaço para compensar o header fixo
+    # Ajuste de layout para conteúdo não ficar colado no header
     st.write("") 
 
     # --- LÓGICA DE PÁGINAS ---
