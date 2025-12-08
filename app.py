@@ -24,10 +24,6 @@ except: pass
 
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
-# --- GESTOR DE COOKIES (NO TOPO) ---
-# Importante: Instanciar apenas uma vez e dar tempo para carregar
-cookie_manager = stx.CookieManager()
-
 # ==============================================================================
 # 2. CSS AVANÇADO
 # ==============================================================================
@@ -47,7 +43,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- 3. CONEXÃO & FUNÇÕES ---
+# ==============================================================================
+# 3. FUNÇÕES AUXILIARES
+# ==============================================================================
 try:
     url_db = st.secrets["SUPABASE_URL"]
     key_db = st.secrets["SUPABASE_KEY"]
@@ -74,32 +72,38 @@ def padronizar(texto, tipo="titulo"): return (str(texto).strip().title() if tipo
 def limpar_coluna(col): return ''.join(c for c in unicodedata.normalize('NFD', str(col).lower().strip()) if unicodedata.category(c) != 'Mn')
 
 # ==============================================================================
-# 4. LÓGICA DE SESSÃO ROBUSTA
+# 4. GERENCIAMENTO DE SESSÃO E COOKIES (LÓGICA BLINDADA)
 # ==============================================================================
 
-# Inicializa sessão
+# 1. Instancia com KEY FIXA (importante para não reiniciar o componente)
+cookie_manager = stx.CookieManager(key="auth_cookie_manager")
+
+# 2. Inicializa Sessão
 if "usuario_logado" not in st.session_state:
     st.session_state["usuario_logado"] = None
 
-# 1. Tenta recuperar do Cookie se não estiver logado
+# 3. Lógica de Recuperação Automática
+# Só tenta recuperar se NINGUÉM estiver logado
 if st.session_state["usuario_logado"] is None:
-    # PEQUENO ATRASO PARA GARANTIR QUE O COOKIE CARREGUE
-    time.sleep(0.3) 
+    # Atraso estratégico aumentado para garantir conexão com o browser
+    time.sleep(0.5) 
     
-    cookies = cookie_manager.get_all()
-    cookie_user = cookies.get('gupy_user_token')
+    # Tenta ler o cookie
+    cookie_user = cookie_manager.get('gupy_user_token')
     
     if cookie_user:
+        # Se achou o cookie, valida no banco
         user_db = recuperar_usuario_cookie(cookie_user)
         if user_db:
             st.session_state["usuario_logado"] = user_db
-            st.rerun() # Recarrega para aplicar o login imediatamente
+            # Rerun imediato para "pintar" a tela correta sem mostrar o login
+            st.rerun()
 
 # ==============================================================================
 # 5. TELAS
 # ==============================================================================
 
-# --- LOGIN ---
+# --- TELA DE LOGIN ---
 if st.session_state["usuario_logado"] is None:
     st.write("#"); st.write("#")
     c_esq, c_centro, c_dir = st.columns([1, 0.8, 1])
@@ -116,10 +120,12 @@ if st.session_state["usuario_logado"] is None:
                 if st.form_submit_button("Acessar Plataforma", use_container_width=True, type="primary"):
                     user = verificar_login(u, s)
                     if user:
+                        # Login Sucesso: Define Sessão E Define Cookie
                         st.session_state["usuario_logado"] = user
-                        # Salva cookie por 7 dias
                         expires = datetime.now() + timedelta(days=7)
                         cookie_manager.set('gupy_user_token', u, expires_at=expires)
+                        # Pequeno sleep para garantir que o cookie foi gravado antes do reload
+                        time.sleep(0.5)
                         st.rerun()
                     else: st.toast("🚫 Credenciais inválidas.", icon="error")
 
@@ -145,7 +151,7 @@ else:
             c_u_text, c_u_btn = st.columns([2, 1])
             with c_u_text: st.markdown(f"<div style='text-align:right; font-size:0.85rem; color:#64748B; margin-top:5px;'>Olá, <b>{user['username']}</b></div>", unsafe_allow_html=True)
             with c_u_btn:
-                # LOGOUT COM REMOÇÃO DE COOKIE
+                # LOGOUT COMPLETO
                 if st.button("Sair", key="btn_logout"):
                     cookie_manager.delete('gupy_user_token')
                     st.session_state["usuario_logado"] = None
