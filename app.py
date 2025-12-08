@@ -11,26 +11,19 @@ from PIL import Image
 # ==============================================================================
 # 🖼️ ÁREA DAS IMAGENS
 # ==============================================================================
-
-# 1. LINK DO FAVICON (Ícone pequeno da aba do navegador)
-FAVICON_URL = "https://urmwvabkikftsefztadb.supabase.co/storage/v1/object/public/imagens/favicon.png"
-
-# 2. LINK DA LOGO (Imagem que aparece no menu e no login)
 LOGO_URL = "https://urmwvabkikftsefztadb.supabase.co/storage/v1/object/public/imagens/logo_gupy.png.png"
-
 # ==============================================================================
 
 # --- TENTA CARREGAR O FAVICON ---
-favicon = "💙" # Ícone padrão caso falhe
+favicon = "💙" 
 try:
-    response = requests.get(FAVICON_URL, timeout=3)
+    response = requests.get(LOGO_URL, timeout=3)
     if response.status_code == 200:
         favicon = Image.open(io.BytesIO(response.content))
-except:
-    pass
+except: pass
 
-# --- 1. CONFIGURAÇÃO DA PÁGINA ---
-st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
+# --- 1. CONFIGURAÇÃO DA PÁGINA (TÍTULO DO NAVEGADOR ATUALIZADO) ---
+st.set_page_config(page_title="Frases de Recusa - Gupy", page_icon=favicon, layout="wide")
 
 # --- CSS MODERNO E LIMPO ---
 st.markdown("""
@@ -123,12 +116,9 @@ if st.session_state["usuario_logado"] is None:
     with c2:
         st.write(""); st.write("")
         with st.container(border=True):
-            if LOGO_URL: 
-                st.image(LOGO_URL, width=150)
-            else: 
-                st.markdown("<h1 class='logo-text'>gupy</h1>", unsafe_allow_html=True)
-            
-            st.markdown("<h3 style='text-align:left; color:#555;'>Biblioteca de Frases</h3>", unsafe_allow_html=True)
+            if LOGO_URL: st.image(LOGO_URL, width=150)
+            else: st.markdown("<h1 class='logo-text'>gupy</h1>", unsafe_allow_html=True)
+            st.markdown("<h3 style='text-align:left; color:#555;'>Frases de Recusa</h3>", unsafe_allow_html=True)
             with st.form("login"):
                 u = st.text_input("Usuário"); s = st.text_input("Senha", type="password")
                 if st.form_submit_button("Acessar Plataforma", use_container_width=True):
@@ -140,11 +130,8 @@ else:
     user = st.session_state["usuario_logado"]
     
     with st.sidebar:
-        if LOGO_URL: 
-            st.image(LOGO_URL, width=140)
-        else: 
-            st.markdown("## gupy<span style='color:#2175D9'>.</span>", unsafe_allow_html=True)
-        
+        if LOGO_URL: st.image(LOGO_URL, width=140)
+        else: st.markdown("## gupy<span style='color:#2175D9'>.</span>", unsafe_allow_html=True)
         st.caption(f"Olá, {user['username']}")
         st.divider()
         opcoes = ["📂 Frases de Recusa", "📝 Adicionar Frases", "⚙️ Gerenciador"] if user['admin'] else ["📂 Frases de Recusa", "📝 Adicionar Frases"]
@@ -221,6 +208,25 @@ else:
                                 except: df = pd.read_csv(upl, encoding='latin-1', sep=';')
                             else:
                                 df = pd.read_excel(upl)
+
+                            # TENTATIVA DE ENCONTRAR O CABEÇALHO CORRETO
+                            header_idx = -1
+                            keywords = ['empresa', 'conteudo', 'frase', 'motivo']
+                            
+                            for i, row in df.head(50).iterrows():
+                                row_str = " ".join([str(val).lower() for val in row.values])
+                                if sum(1 for k in keywords if k in row_str) >= 2:
+                                    header_idx = i
+                                    break
+                            
+                            if header_idx > -1:
+                                if header_idx > 0:
+                                    if upl.name.endswith('.csv'):
+                                        upl.seek(0)
+                                        df = pd.read_csv(upl, header=header_idx, encoding='latin-1', sep=None, engine='python')
+                                    else:
+                                        upl.seek(0)
+                                        df = pd.read_excel(upl, header=header_idx)
 
                             df.columns = [limpar_coluna(c) for c in df.columns]
                             
@@ -336,4 +342,3 @@ else:
                     if check == "QUERO APAGAR TUDO":
                         supabase.table("frases").delete().neq("id", 0).execute()
                         registrar_log(user['username'], "LIMPEZA TOTAL", "Todas as frases foram apagadas"); st.rerun()
-
