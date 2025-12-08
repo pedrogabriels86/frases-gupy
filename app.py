@@ -5,9 +5,22 @@ import time
 from datetime import datetime
 import io
 import unicodedata
+import requests
+from PIL import Image
 
-# --- 1. CONFIGURAÇÃO GUPY ---
-st.set_page_config(page_title="Gupy Frases", page_icon="💙", layout="wide")
+# --- 1. CARREGAMENTO DO FAVICON (LOGO NA ABA) ---
+LOGO_URL = "https://urmwvabkikftsefztadb.supabase.co/storage/v1/object/public/imagens/logo_gupy.png.png"
+
+try:
+    # Tenta baixar a imagem para usar de ícone
+    response = requests.get(LOGO_URL)
+    favicon = Image.open(io.BytesIO(response.content))
+except:
+    # Se der erro, usa um emoji azul como reserva
+    favicon = "💙"
+
+# CONFIGURAÇÃO DA PÁGINA
+st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # --- CSS MODERNO E LIMPO ---
 st.markdown("""
@@ -96,8 +109,6 @@ def limpar_coluna(col):
 # --- 4. FRONTEND ---
 if "usuario_logado" not in st.session_state: st.session_state["usuario_logado"] = None
 
-LOGO_URL = "https://urmwvabkikftsefztadb.supabase.co/storage/v1/object/public/imagens/logo_gupy.png.png"
-
 if st.session_state["usuario_logado"] is None:
     c1, c2, c3 = st.columns([1,1.2,1])
     with c2:
@@ -184,7 +195,7 @@ else:
             col_search, col_upload = st.columns([2, 1])
             q = col_search.text_input("🔎 Buscar registro para editar ou excluir...", placeholder="Digite palavras-chave")
             
-            # --- ÁREA DE IMPORTAÇÃO (AJUSTADA) ---
+            # --- ÁREA DE IMPORTAÇÃO ---
             with col_upload:
                 with st.popover("📂 Importar Excel/CSV", use_container_width=True):
                     upl = st.file_uploader("Arquivo", type=['csv','xlsx'])
@@ -198,11 +209,10 @@ else:
                             else:
                                 df = pd.read_excel(upl)
 
-                            # 2. Normaliza os nomes das colunas da planilha (tudo minusculo, sem acento)
+                            # 2. Normaliza os nomes das colunas da planilha
                             df.columns = [limpar_coluna(c) for c in df.columns]
                             
                             # 3. Mapeia para os nomes do banco de dados
-                            # "data" vira "data_revisao", "revisado por" vira "revisado_por"
                             mapa_colunas = {
                                 'empresa solicitante': 'empresa', 'cliente': 'empresa',
                                 'tipo documento': 'documento', 'doc': 'documento',
@@ -235,7 +245,6 @@ else:
                                     mot = padronizar(str(r['motivo']))
                                     cont = padronizar(str(r['conteudo']), 'frase')
                                     
-                                    # Pega revisão da planilha se existir, senão usa o usuário atual
                                     rev_por = user['username']
                                     rev_data = datetime.now().strftime('%Y-%m-%d')
                                     
@@ -243,7 +252,6 @@ else:
                                         rev_por = str(r['revisado_por'])
                                     if 'data_revisao' in df.columns and pd.notna(r['data_revisao']):
                                         try:
-                                            # Tenta tratar data do Excel
                                             val_data = r['data_revisao']
                                             if isinstance(val_data, datetime):
                                                 rev_data = val_data.strftime('%Y-%m-%d')
