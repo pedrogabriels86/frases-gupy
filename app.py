@@ -25,7 +25,7 @@ except: pass
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. CSS CUSTOMIZADO (MÁXIMA COMPACTAÇÃO)
+# 2. CSS CUSTOMIZADO (MAXIMIZANDO A ESTABILIDADE DA DIVISÃO)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -39,28 +39,28 @@ st.markdown("""
         display: none !important; 
     }
     
-    /* Zera Margem do Corpo Principal: REDUZINDO PADDING LATERAL DE 5rem PARA 2.5rem */
+    /* Zera Margem do Corpo Principal: PADDING LATERAL RETORNANDO A UM VALOR MODERADO (4rem) */
     .block-container {
-        padding-top: 0.5rem !important; /* Mais compacto no topo */
-        padding-bottom: 3rem; /* Mais compacto no rodapé */
+        padding-top: 0.8rem !important; /* Respiro no topo */
+        padding-bottom: 3rem; 
         margin-top: 0 !important;
         max-width: 100%;
-        padding-left: 2.5rem; /* Menos espaço em branco nas laterais */
-        padding-right: 2.5rem;
+        padding-left: 4rem; /* Valor moderado para evitar espaços enormes, mas garantindo margem */
+        padding-right: 4rem;
     }
     
-    /* Zera Margens Internas de Colunas e Blocks */
+    /* Zera Margens Internas de Colunas e Blocks que causam espaços indesejados */
     div[data-testid^="stVerticalBlock"] > div:first-child > div:nth-child(2) {
         margin-top: 0rem !important;
         padding-top: 0rem !important;
     }
     
-    /* 2. Estilo do Container do Header (Fixo e Estável): REDUZINDO PADDING VERTICAL */
+    /* 2. Estilo do Container do Header (Fixo e Estável) */
     div[data-testid="stVerticalBlock"] > div:first-child > div:first-child { 
         background-color: white;
         border-bottom: 1px solid #E2E8F0;
-        padding: 0.8rem 2.5rem; /* Padding vertical e lateral reduzido para compactar */
-        margin: -0.5rem -2.5rem 1.5rem -2.5rem; /* Ajuste de margem para compensar o novo padding do block-container */
+        padding: 0.9rem 4rem; /* Ajustado para 4rem para corresponder ao padding do block-container */
+        margin: -0.8rem -4rem 1.5rem -4rem; /* Ajuste de margem para compensar o padding do container */
         box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
         z-index: 100;
         width: 100vw; 
@@ -69,7 +69,7 @@ st.markdown("""
     /* 3. Estilização do Menu (Tabs) */
     .stRadio > div[role="radiogroup"] { display: flex; gap: 8px; justify-content: center; }
     .stRadio > div[role="radiogroup"] label {
-        padding: 4px 14px; /* Padding menor para menu mais compacto */
+        padding: 5px 15px; /* Compactação leve */
         border-radius: 6px; transition: all 0.2s ease;
         color: #64748B; font-weight: 500; font-size: 0.9rem;
     }
@@ -80,25 +80,33 @@ st.markdown("""
     }
     .stRadio > div[role="radiogroup"] label > div:first-child { display: none; }
 
-    /* 4. Alinhamento de Usuário e Botão SAIR no Header */
+    /* 4. Alinhamento de Usuário e Botão SAIR no Header (Ajuste de Flexbox) */
     div[data-testid="stVerticalBlock"] > div:first-child > div:first-child > div:nth-child(3) > div {
-        display: flex; align-items: center; justify-content: flex-end; 
-        gap: 8px; /* Reduzindo o espaço entre texto e botão */
+        display: flex; 
+        align-items: center; /* Centraliza verticalmente o texto e o botão */
+        justify-content: flex-end; 
+        gap: 8px; 
         height: 100%;
     }
-    .user-text { text-align: right; font-size: 0.8rem; color: #475569; line-height: 1.1; }
-    .stButton button { padding: 0.3rem 0.8rem !important; } /* Botão menor no header */
+    .user-text { 
+        text-align: right; 
+        font-size: 0.8rem; 
+        color: #475569; 
+        line-height: 1.1; 
+        /* Adicionando um min-width para garantir que o texto não se quebre muito facilmente */
+        min-width: 60px; 
+    }
+    .stButton button { padding: 0.3rem 0.8rem !important; } 
     
-    /* 5. Ajustes de Inputs para Alinhamento e Aparência */
+    /* 5. Ajustes de Inputs e Títulos (Para Compactação) */
     div[data-testid="stVerticalBlock"] div[data-testid="stTextInput"], 
     div[data-testid="stVerticalBlock"] div[data-testid="stSelectbox"] {
         margin-bottom: 0px !important; 
     }
     
-    /* Títulos Subheader mais compactos */
     h3 { margin-top: 0.5rem; margin-bottom: 0.5rem; }
 
-    /* Cards (Biblioteca) - Mantidos os estilos para a beleza do card */
+    /* Cards (Biblioteca) */
     .frase-header { background-color: white; border-radius: 12px 12px 0 0; border: 1px solid #E2E8F0; border-bottom: none; padding: 15px 20px; }
     .card-meta { margin-top: 10px; padding-top: 10px; border-top: 1px solid #F1F5F9; font-size: 0.75rem; color: #94A3B8; display: flex; justify-content: space-between; align-items: center; }
     .stCodeBlock { border: 1px solid #E2E8F0; border-top: none; border-radius: 0 0 12px 12px; background-color: white !important; }
@@ -168,18 +176,18 @@ if st.session_state["usuario_logado"] is None:
                 st.session_state["usuario_logado"] = user_db
 
 # ==============================================================================
-# 5. FUNÇÕES DE RENDERIZAÇÃO POR PÁGINA (Ajustadas para Compactação)
+# 5. FUNÇÕES DE RENDERIZAÇÃO POR PÁGINA (Mantidas e Estáveis)
 # ==============================================================================
 
 def render_biblioteca(dados_totais, user):
     """Renderiza a página Biblioteca com busca e exibição em cards."""
-    # st.subheader("Biblioteca de Frases") # Removendo Subheader, pois o conteúdo logo abaixo é o filtro
     
-    # CONTAINER DE BUSCA E FILTRO (Mantido e estável)
+    # CONTAINER DE BUSCA E FILTRO 
     with st.container(border=True): 
         c_search, c_filter = st.columns([5, 2]) 
         
         with c_search:
+            # Título da página agora é o label do input
             termo = st.text_input("Biblioteca de Frases", 
                                 placeholder="🔎 Busque por empresa, motivo ou conteúdo...", 
                                 label_visibility="visible", key="lib_search_term")
@@ -204,7 +212,7 @@ def render_biblioteca(dados_totais, user):
 
     st.markdown(f"<div style='margin-top: 10px; margin-bottom:10px; color:#64748B;'>Encontrados <b>{len(filtrados)}</b> resultados</div>", unsafe_allow_html=True)
     
-    # EXIBIÇÃO DOS CARDS EM DUAS COLUNAS (Mantido e estável)
+    # EXIBIÇÃO DOS CARDS EM DUAS COLUNAS 
     if not filtrados: st.info("Nenhum resultado encontrado.")
     else:
         for i in range(0, len(filtrados), 2):
@@ -225,7 +233,6 @@ def render_biblioteca(dados_totais, user):
                     </div>
                     """, unsafe_allow_html=True)
                     st.code(frase['conteudo'], language="text")
-                    # Espaço vertical reduzido entre os cards
                     st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True) 
 
             render_frase_card(row_c1, filtrados[i])
@@ -233,7 +240,7 @@ def render_biblioteca(dados_totais, user):
                 render_frase_card(row_c2, filtrados[i+1])
                 
 def render_adicionar(dados_totais, user):
-    """Renderiza a página Adicionar. Mantém a estrutura de colunas estável."""
+    """Renderiza a página Adicionar."""
     st.markdown("### Adicionar Novas Frases")
     tab_man, tab_imp = st.tabs(["✍️ Manual", "📥 Importação em Massa"])
     
@@ -484,10 +491,11 @@ else:
     user = st.session_state["usuario_logado"]
     dados_totais = buscar_dados()
 
-    # 6.1 HEADER
+    # 6.1 HEADER (Ajustado o ratio das colunas)
     with st.container():
-        # Colunas com alinhamento "center" para visualmente compactar o menu
-        c_logo, c_menu, c_user = st.columns([1, 3, 1], vertical_alignment="center")
+        # Aumentei o ratio da coluna do logo (1.5) e diminui um pouco a do usuário (1)
+        # O menu (3) tem espaço suficiente para o alinhamento.
+        c_logo, c_menu, c_user = st.columns([1.5, 3, 1], vertical_alignment="center")
         
         with c_logo:
             if LOGO_URL: st.image(LOGO_URL, width=90) 
