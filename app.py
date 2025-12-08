@@ -88,7 +88,9 @@ if st.session_state["usuario_logado"] is None:
     with c2:
         st.write(""); st.write("")
         with st.container(border=True):
-            st.markdown("<h1 style='text-align:center; color:#2175D9;'>gupy<span style='color:#333; font-size:20px'>|frases</span></h1>", unsafe_allow_html=True)
+            # Logo na tela de login
+            st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Gupy_logo.svg/2560px-Gupy_logo.svg.png", width=150)
+            st.markdown("<h3 style='text-align:left; color:#555;'>Frases</h3>", unsafe_allow_html=True)
             with st.form("login"):
                 u = st.text_input("Usuário"); s = st.text_input("Senha", type="password")
                 if st.form_submit_button("Acessar Plataforma", use_container_width=True):
@@ -100,10 +102,16 @@ else:
     user = st.session_state["usuario_logado"]
     
     with st.sidebar:
-        st.markdown("### gupy<span style='color:#2175D9'>.</span>", unsafe_allow_html=True)
+        # LOGO GUPY NO MENU
+        st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Gupy_logo.svg/2560px-Gupy_logo.svg.png", width=140)
+        
         st.caption(f"Olá, {user['username']}")
         st.divider()
-        page = st.radio("MENU", ["Biblioteca", "Gestão Inteligente", "Administração"] if user['admin'] else ["Biblioteca", "Gestão Inteligente"])
+        
+        # MENU SEM A PALAVRA "MENU" (label_visibility="collapsed")
+        opcoes = ["Biblioteca", "Gestão Inteligente", "Administração"] if user['admin'] else ["Biblioteca", "Gestão Inteligente"]
+        page = st.radio("Navegação", opcoes, label_visibility="collapsed")
+        
         st.divider()
         if st.button("Sair", use_container_width=True): st.session_state["usuario_logado"] = None; st.rerun()
 
@@ -115,9 +123,8 @@ else:
     else:
         # --- BIBLIOTECA ---
         if page == "Biblioteca":
-            st.title("Biblioteca de Conteúdo")
+            st.title("Biblioteca de Frases") # Título alterado conforme pedido
             c_busca, c_filtro = st.columns([2,1])
-            # CORREÇÃO AQUI: Removido prefix, usado placeholder
             termo = c_busca.text_input("Busca Rápida", placeholder="🔎 Digite para pesquisar...", label_visibility="collapsed")
             dados = buscar_dados()
             filtrados = [f for f in dados if termo.lower() in str(f).lower()] if termo else dados
@@ -161,8 +168,6 @@ else:
 
             st.write("")
             col_search, col_upload = st.columns([2, 1])
-            
-            # CORREÇÃO AQUI: Removido prefix, ajustado label
             q = col_search.text_input("🔎 Buscar registro para editar...", placeholder="Digite palavras-chave")
             
             with col_upload:
@@ -235,7 +240,8 @@ else:
                         with st.expander(f"{u['username']} {'(Admin)' if u['admin'] else ''}"):
                             c_x, c_y = st.columns(2)
                             if c_x.button("Resetar Senha", key=f"r{u['id']}"):
-                                supabase.table("usuarios").update({"trocar_senha":True}).eq("id", u['id']).execute(); st.toast("Resetado!")
+                                supabase.table("usuarios").update({"trocar_senha":True}).eq("id", u['id']).execute()
+                                st.toast("Resetado!")
                             if u['username'] != user['username'] and c_y.button("Excluir", key=f"d{u['id']}", type="primary"):
                                 supabase.table("usuarios").delete().eq("id", u['id']).execute(); st.rerun()
             with t2:
