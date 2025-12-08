@@ -115,10 +115,10 @@ else:
                         with st.container(border=True):
                             st.caption(f"🏢 {f['empresa']} | 📄 {f['documento']}")
                             st.code(f['conteudo'], language="text")
-                            # EXIBIÇÃO DA REVISÃO
+                            
+                            # VISUALIZAÇÃO DA REVISÃO
                             if f.get('revisado_por'):
                                 data_formatada = f['data_revisao']
-                                # Tenta formatar a data para ficar bonita (DD/MM/AAAA)
                                 try:
                                     data_obj = datetime.strptime(f['data_revisao'], '%Y-%m-%d')
                                     data_formatada = data_obj.strftime('%d/%m/%Y')
@@ -132,7 +132,7 @@ else:
             st.title("Gerenciar Frases")
             t1, t2, t3 = st.tabs(["➕ Nova", "✏️ Editar", "📤 Importar"])
             
-            # 1. NOVA
+            # 1. NOVA (AUTOMÁTICA)
             with t1:
                 with st.form("add"):
                     col_a, col_b = st.columns(2)
@@ -141,25 +141,23 @@ else:
                     m = st.text_input("Motivo")
                     c = st.text_area("Frase")
                     
-                    st.divider()
-                    st.caption("Informações de Auditoria (Opcional)")
-                    col_rev1, col_rev2 = st.columns(2)
-                    rev_por = col_rev1.text_input("Revisado Por")
-                    rev_data = col_rev2.date_input("Data da Revisão", value=None)
+                    # Aviso visual para o usuário saber que será automático
+                    st.caption(f"ℹ️ A revisão será registrada automaticamente como: **{user['username']}** em **{datetime.now().strftime('%d/%m/%Y')}**")
 
                     if st.form_submit_button("Salvar") and c:
                         if len(supabase.table("frases").select("id").eq("conteudo", c).execute().data) > 0:
                             st.error("Frase já existe!")
                         else:
-                            payload = {"empresa":e,"documento":d,"motivo":m,"conteudo":c}
-                            if rev_por and rev_data:
-                                payload["revisado_por"] = rev_por
-                                payload["data_revisao"] = str(rev_data)
-                                
+                            # INJEÇÃO AUTOMÁTICA DOS DADOS DE REVISÃO
+                            payload = {
+                                "empresa":e, "documento":d, "motivo":m, "conteudo":c,
+                                "revisado_por": user['username'],
+                                "data_revisao": datetime.now().strftime('%Y-%m-%d')
+                            }
                             supabase.table("frases").insert(payload).execute()
-                            st.success("Salvo!"); time.sleep(1); st.rerun()
+                            st.success("Salvo com registro de auditoria!"); time.sleep(1); st.rerun()
             
-            # 2. EDITAR
+            # 2. EDITAR (ATUALIZAÇÃO AUTOMÁTICA)
             with t2:
                 dados = buscar_dados()
                 if dados:
@@ -175,23 +173,14 @@ else:
                             nc = st.text_area("Conteúdo", obj['conteudo'])
                             
                             st.divider()
-                            col_er1, col_er2 = st.columns(2)
-                            
-                            # Logica para data: se vier do banco, converte para objeto data
-                            val_data = None
-                            if obj.get('data_revisao'):
-                                try: val_data = datetime.strptime(obj['data_revisao'], '%Y-%m-%d').date()
-                                except: pass
-                                
-                            n_rev = col_er1.text_input("Revisado Por", obj.get('revisado_por') or "")
-                            n_dat = col_er2.date_input("Data da Revisão", value=val_data)
+                            st.caption(f"📝 Ao salvar, o registro de revisão será atualizado para: **{user['username']}** (Hoje)")
                             
                             c1, c2 = st.columns(2)
                             if c1.form_submit_button("Salvar"):
                                 update_payload = {
                                     "empresa":ne,"documento":nd,"motivo":nm,"conteudo":nc,
-                                    "revisado_por": n_rev if n_rev else None,
-                                    "data_revisao": str(n_dat) if n_dat else None
+                                    "revisado_por": user['username'], # Atualiza quem mexeu
+                                    "data_revisao": datetime.now().strftime('%Y-%m-%d') # Atualiza a data
                                 }
                                 supabase.table("frases").update(update_payload).eq("id", obj['id']).execute()
                                 st.success("Atualizado!"); time.sleep(1); st.rerun()
@@ -200,9 +189,10 @@ else:
                                 supabase.table("frases").delete().eq("id", obj['id']).execute()
                                 st.rerun()
             
-            # 3. IMPORTAR
+            # 3. IMPORTAR (SEGUE A PLANILHA)
             with t3:
                 st.markdown("**Colunas suportadas:** `empresa`, `documento`, `motivo`, `conteudo`, `revisado_por`, `data_revisao`.")
+                st.info("Na importação, usamos os dados da planilha. Se as colunas de revisão não existirem, o campo ficará vazio.")
                 upl = st.file_uploader("CSV/Excel", type=['csv','xlsx'])
                 if upl and st.button("Importar"):
                     try:
@@ -220,11 +210,10 @@ else:
                                     "motivo": row['motivo'],
                                     "conteudo": row['conteudo']
                                 }
-                                # Adiciona campos de revisão se existirem na planilha
+                                # Respeita a planilha: só insere se existir a coluna e tiver valor
                                 if 'revisado_por' in df.columns and pd.notna(row['revisado_por']):
                                     item['revisado_por'] = str(row['revisado_por'])
                                 if 'data_revisao' in df.columns and pd.notna(row['data_revisao']):
-                                    # Tenta limpar a data para string YYYY-MM-DD
                                     item['data_revisao'] = str(row['data_revisao']).split('T')[0]
                                 
                                 novos_objs.append(item)
@@ -267,7 +256,7 @@ else:
                                     else: st.error("Não pode se excluir.")
             else: st.error("Restrito.")
 
-        # --- SUPER ADMIN (ZONA DE PERIGO) ---
+        # --- SUPER ADMIN ---
         elif menu == "🚧 Super Admin (Danger)":
             st.title("🚧 Zona de Perigo")
             st.error("Ações irreversíveis.")
