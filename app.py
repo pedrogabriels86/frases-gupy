@@ -35,7 +35,22 @@ st.markdown("""
     header[data-testid="stHeader"], footer, div[data-testid="stToolbar"] { display: none; }
     
     .nav-container { background: white; padding: 1rem 2rem; border-bottom: 1px solid #E2E8F0; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    
+    /* CARD HEADER AJUSTADO */
     .frase-header { background-color: white; border-radius: 12px 12px 0 0; border: 1px solid #E2E8F0; border-bottom: none; padding: 15px 20px; }
+    
+    /* RODAPÉ DO HEADER (AUTOR) */
+    .card-meta {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #F1F5F9;
+        font-size: 0.75rem;
+        color: #94A3B8;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
     .stCodeBlock { border: 1px solid #E2E8F0; border-top: none; border-radius: 0 0 12px 12px; background-color: white !important; }
     .stButton button { border-radius: 8px; font-weight: 600; transition: all 0.2s; }
     .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
@@ -74,35 +89,23 @@ def limpar_coluna(col): return ''.join(c for c in unicodedata.normalize('NFD', s
 # ==============================================================================
 # 4. SISTEMA DE AUTENTICAÇÃO BLINDADO
 # ==============================================================================
-
-# 1. Instancia o Gerenciador
 cookie_manager = stx.CookieManager(key="main_auth")
 
-# 2. Inicializa Variável de Sessão
 if "usuario_logado" not in st.session_state:
     st.session_state["usuario_logado"] = None
 
-# 3. LÓGICA DE RECUPERAÇÃO (A MÁGICA ACONTECE AQUI)
 if st.session_state["usuario_logado"] is None:
-    # Tenta ler todos os cookies
     cookies = cookie_manager.get_all()
-    
-    # Se a lista de cookies vier vazia ou None, esperamos um pouco e tentamos de novo
-    # Isso resolve o problema do F5 (Race Condition)
     if not cookies:
-        with st.spinner("Conectando..."): # Mostra visualmente que está carregando
+        with st.spinner("Conectando..."):
             time.sleep(1) 
             cookies = cookie_manager.get_all()
     
-    # Tenta pegar o nosso token específico
     token = cookies.get("gupy_user_token") if cookies else None
-    
     if token:
         user_db = recuperar_usuario_cookie(token)
         if user_db:
             st.session_state["usuario_logado"] = user_db
-            # Se achou o usuário, não faz rerun imediato aqui para evitar loops, 
-            # deixa o fluxo seguir e renderizar a área logada
 
 # ==============================================================================
 # 5. RENDERIZAÇÃO DAS TELAS
@@ -125,11 +128,10 @@ if st.session_state["usuario_logado"] is None:
                 if st.form_submit_button("Acessar Plataforma", use_container_width=True, type="primary"):
                     user = verificar_login(u, s)
                     if user:
-                        # Login OK: Define Sessão e Grava Cookie
                         st.session_state["usuario_logado"] = user
                         expires = datetime.now() + timedelta(days=7)
                         cookie_manager.set("gupy_user_token", u, expires_at=expires)
-                        time.sleep(0.5) # Dá tempo de gravar
+                        time.sleep(0.5)
                         st.rerun()
                     else: st.toast("🚫 Credenciais inválidas.", icon="error")
 
@@ -155,7 +157,6 @@ else:
             c_u_text, c_u_btn = st.columns([2, 1])
             with c_u_text: st.markdown(f"<div style='text-align:right; font-size:0.85rem; color:#64748B; margin-top:5px;'>Olá, <b>{user['username']}</b></div>", unsafe_allow_html=True)
             with c_u_btn:
-                # LOGOUT: Apaga Cookie e Sessão
                 if st.button("Sair", key="btn_logout"):
                     cookie_manager.delete("gupy_user_token")
                     st.session_state["usuario_logado"] = None
@@ -190,6 +191,10 @@ else:
                 for i in range(0, len(filtrados), 2):
                     row_c1, row_c2 = st.columns(2)
                     f1 = filtrados[i]
+                    
+                    # --- MONTAGEM DO CARD 1 ---
+                    author1 = f1.get('revisado_por', 'Sistema')
+                    date1 = f1.get('data_revisao', '')
                     with row_c1:
                         st.markdown(f"""
                         <div class="frase-header">
@@ -198,11 +203,20 @@ else:
                                 <span class="badge badge-blue">{f1['documento']}</span>
                             </div>
                             <div style="color:#64748B; font-size:0.9rem;"><strong>Motivo:</strong> {f1['motivo']}</div>
+                            
+                            <div class="card-meta">
+                                <span>👤 {author1}</span>
+                                <span>📅 {date1}</span>
+                            </div>
                         </div>
                         """, unsafe_allow_html=True)
                         st.code(f1['conteudo'], language="text")
+
+                    # --- MONTAGEM DO CARD 2 ---
                     if i + 1 < len(filtrados):
                         f2 = filtrados[i+1]
+                        author2 = f2.get('revisado_por', 'Sistema')
+                        date2 = f2.get('data_revisao', '')
                         with row_c2:
                             st.markdown(f"""
                             <div class="frase-header">
@@ -211,6 +225,11 @@ else:
                                     <span class="badge badge-blue">{f2['documento']}</span>
                                 </div>
                                 <div style="color:#64748B; font-size:0.9rem;"><strong>Motivo:</strong> {f2['motivo']}</div>
+                                
+                                <div class="card-meta">
+                                    <span>👤 {author2}</span>
+                                    <span>📅 {date2}</span>
+                                </div>
                             </div>
                             """, unsafe_allow_html=True)
                             st.code(f2['conteudo'], language="text")
@@ -230,11 +249,17 @@ else:
                             ne, nd, nm = padronizar(ne), padronizar(nd), padronizar(nm); nc = padronizar(nc, "frase")
                             if [d for d in dados_totais if d['conteudo'] == nc]: st.error("Frase já existe.")
                             else:
-                                supabase.table("frases").insert({"empresa":ne, "documento":nd, "motivo":nm, "conteudo":nc, "revisado_por":user['username'], "data_revisao":datetime.now().strftime('%Y-%m-%d')}).execute()
+                                supabase.table("frases").insert({
+                                    "empresa":ne, "documento":nd, "motivo":nm, "conteudo":nc, 
+                                    "revisado_por":user['username'], # Manual usa o usuário logado
+                                    "data_revisao":datetime.now().strftime('%Y-%m-%d')
+                                }).execute()
                                 registrar_log(user['username'], "Criou Frase", f"{ne}-{nm}"); st.toast("✅ Salvo!"); time.sleep(1); st.cache_data.clear(); st.rerun()
                         else: st.warning("Preencha todos os campos.")
+            
+            # --- LÓGICA DE IMPORTAÇÃO ATUALIZADA ---
             with tab_imp:
-                st.info("Upload CSV/Excel. Colunas: Empresa, Documento, Motivo, Conteudo.")
+                st.info("Colunas sugeridas: Empresa, Documento, Motivo, Conteudo, Revisado Por (Opcional).")
                 upl = st.file_uploader("Arquivo", type=['csv','xlsx'])
                 if upl and st.button("Processar Arquivo", type="primary"):
                     try:
@@ -242,18 +267,60 @@ else:
                             try: df = pd.read_csv(upl)
                             except: df = pd.read_csv(upl, encoding='latin-1', sep=';')
                         else: df = pd.read_excel(upl)
+                        
                         df.columns = [limpar_coluna(c) for c in df.columns]
-                        mapa = {'empresa solicitante':'empresa','cliente':'empresa','tipo documento':'documento','doc':'documento','motivo recusa':'motivo','frase':'conteudo','texto':'conteudo','mensagem':'conteudo'}
+                        # Mapeamento incluindo 'revisado por'
+                        mapa = {
+                            'empresa solicitante':'empresa','cliente':'empresa',
+                            'tipo documento':'documento','doc':'documento',
+                            'motivo recusa':'motivo','justificativa':'motivo',
+                            'frase':'conteudo','texto':'conteudo','mensagem':'conteudo',
+                            'revisado por': 'revisado_por', 'autor': 'revisado_por', 'responsavel': 'revisado_por',
+                            'data': 'data_revisao', 'data revisao': 'data_revisao'
+                        }
                         df.rename(columns=mapa, inplace=True)
-                        if not all(c in df.columns for c in ['empresa', 'documento', 'motivo', 'conteudo']): st.error("Colunas inválidas.")
+                        
+                        if not all(c in df.columns for c in ['empresa', 'documento', 'motivo', 'conteudo']): 
+                            st.error("Colunas obrigatórias não encontradas (Empresa, Documento, Motivo, Conteúdo).")
                         else:
                             novos = []; db_conteudos = set(d['conteudo'] for d in dados_totais)
                             for _, row in df.iterrows():
                                 cont = padronizar(str(row['conteudo']), 'frase')
                                 if cont and cont not in db_conteudos:
-                                    novos.append({"empresa": padronizar(str(row['empresa'])), "documento": padronizar(str(row['documento'])), "motivo": padronizar(str(row['motivo'])), "conteudo": cont, "revisado_por": user['username'], "data_revisao": datetime.now().strftime('%Y-%m-%d')}); db_conteudos.add(cont)
-                            if novos: supabase.table("frases").insert(novos).execute(); registrar_log(user['username'], "Importação", f"{len(novos)}"); st.success(f"{len(novos)} importados!"); st.cache_data.clear()
-                            else: st.warning("Nada novo.")
+                                    
+                                    # LÓGICA DE DECISÃO DO AUTOR
+                                    # Se a planilha tem 'revisado_por' e não está vazio, usa ele.
+                                    # Senão, usa o usuário logado.
+                                    autor_final = user['username']
+                                    if 'revisado_por' in df.columns and pd.notna(row['revisado_por']) and str(row['revisado_por']).strip() != '':
+                                        autor_final = str(row['revisado_por'])
+                                    
+                                    # DATA
+                                    data_final = datetime.now().strftime('%Y-%m-%d')
+                                    if 'data_revisao' in df.columns and pd.notna(row['data_revisao']):
+                                        try: 
+                                            # Tenta converter se vier datetime do Excel
+                                            val = row['data_revisao']
+                                            if isinstance(val, datetime): data_final = val.strftime('%Y-%m-%d')
+                                            else: data_final = str(val).split('T')[0] # Tenta pegar só YYYY-MM-DD
+                                        except: pass
+
+                                    novos.append({
+                                        "empresa": padronizar(str(row['empresa'])), 
+                                        "documento": padronizar(str(row['documento'])), 
+                                        "motivo": padronizar(str(row['motivo'])), 
+                                        "conteudo": cont, 
+                                        "revisado_por": autor_final, # Usa a lógica acima
+                                        "data_revisao": data_final
+                                    })
+                                    db_conteudos.add(cont)
+                            
+                            if novos: 
+                                supabase.table("frases").insert(novos).execute()
+                                registrar_log(user['username'], "Importação", f"{len(novos)}")
+                                st.success(f"{len(novos)} importados!")
+                                st.cache_data.clear()
+                            else: st.warning("Nenhuma frase nova encontrada.")
                     except Exception as e: st.error(f"Erro: {e}")
 
         # PÁGINA: MANUTENÇÃO
@@ -269,9 +336,18 @@ else:
                             c1, c2, c3 = st.columns([1,1,1])
                             ne = c1.text_input("Empresa", item['empresa']); nd = c2.text_input("Documento", item['documento']); nm = c3.text_input("Motivo", item['motivo'])
                             nc = st.text_area("Conteúdo", item['conteudo'])
+                            
+                            # Opção de editar o Autor também na manutenção, se necessário
+                            c_auth, c_date = st.columns(2)
+                            na = c_auth.text_input("Autor/Revisor", item.get('revisado_por', user['username']))
+                            
                             c_s, c_d = st.columns([4, 1])
                             if c_s.form_submit_button("💾 Salvar", type="primary"):
-                                supabase.table("frases").update({"empresa": ne, "documento": nd, "motivo": nm, "conteudo": nc, "revisado_por": user['username'], "data_revisao": datetime.now().strftime('%Y-%m-%d')}).eq("id", item['id']).execute()
+                                supabase.table("frases").update({
+                                    "empresa": ne, "documento": nd, "motivo": nm, "conteudo": nc, 
+                                    "revisado_por": na, # Salva o autor editado ou o atual
+                                    "data_revisao": datetime.now().strftime('%Y-%m-%d')
+                                }).eq("id", item['id']).execute()
                                 registrar_log(user['username'], "Edição", str(item['id'])); st.toast("Salvo!"); st.cache_data.clear(); time.sleep(1); st.rerun()
                             if c_d.form_submit_button("🗑️ Excluir"):
                                 supabase.table("frases").delete().eq("id", item['id']).execute()
