@@ -52,19 +52,23 @@ st.markdown("""
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
     
-    /* CARD DE FRASE (ESTILO) */
-    .frase-card {
+    /* CARD DE FRASE (HEADER APENAS) */
+    .frase-header {
         background-color: white;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
         border: 1px solid #E2E8F0;
-        border-radius: 12px;
-        padding: 20px;
-        height: 100%;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        transition: all 0.2s;
+        border-bottom: none; /* Remove borda de baixo para conectar com o código */
+        padding: 15px 20px;
     }
-    .frase-card:hover {
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        border-color: #BFDBFE;
+    
+    /* Ajuste visual para o bloco de código parecer parte do card */
+    .stCodeBlock {
+        border: 1px solid #E2E8F0;
+        border-top: none;
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
+        background-color: white !important;
     }
 
     /* BOTÕES E INPUTS */
@@ -158,7 +162,6 @@ else:
                 if st.button("Sair", key="btn_logout"): st.session_state["usuario_logado"] = None; st.rerun()
     st.markdown("---") 
 
-    # TROCA SENHA
     if user.get('trocar_senha'):
         st.warning("⚠️ Segurança: Sua senha precisa ser redefinida.")
         with st.form("new_pass"):
@@ -170,22 +173,16 @@ else:
                 else: st.error("Senhas inválidas.")
     else:
         # ======================================================================
-        # PÁGINA: BIBLIOTECA (ALINHAMENTO CORRIGIDO)
+        # PÁGINA: BIBLIOTECA (COM COPY & PASTE)
         # ======================================================================
         if page == "Biblioteca":
             st.subheader("Biblioteca de Frases")
             
-            # --- CORREÇÃO DE ALINHAMENTO AQUI ---
             with st.container(border=True):
-                # 'vertical_alignment="bottom"' força os itens a ficarem na base da linha
                 c_search, c_filter = st.columns([3, 1], vertical_alignment="bottom")
-                
                 termo = c_search.text_input("Pesquisa Inteligente", placeholder="🔎 Busque por empresa, motivo ou conteúdo...", label_visibility="collapsed")
-                # O título 'Filtrar Empresa' empurra o selectbox para baixo.
-                # Com vertical_alignment="bottom", o input de busca (que é mais baixo) desce para alinhar com o selectbox.
                 filtro_empresa = c_filter.selectbox("Filtrar Empresa", ["Todas"] + sorted(list(set(d['empresa'] for d in dados_totais))))
 
-            # Filtros
             filtrados = dados_totais
             if filtro_empresa != "Todas": filtrados = [f for f in filtrados if f['empresa'] == filtro_empresa]
             if termo: filtrados = [f for f in filtrados if termo.lower() in str(f).lower()]
@@ -196,42 +193,43 @@ else:
             else:
                 for i in range(0, len(filtrados), 2):
                     row_c1, row_c2 = st.columns(2)
+                    
+                    # --- ITEM 1 ---
                     f1 = filtrados[i]
                     with row_c1:
-                        with st.container():
-                            st.markdown(f"""
-                            <div class="frase-card">
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                                    <h4 style="margin:0; color:#1E3A8A;">{f1['empresa']}</h4>
-                                    <span class="badge badge-blue">{f1['documento']}</span>
-                                </div>
-                                <div style="color:#64748B; font-size:0.9rem; margin-bottom:10px;">
-                                    <strong>Motivo:</strong> {f1['motivo']}
-                                </div>
-                                <div style="background:#F1F5F9; padding:10px; border-radius:8px; font-family:monospace; font-size:0.85rem; color:#334155;">
-                                    {f1['conteudo']}
-                                </div>
+                        # Header em HTML
+                        st.markdown(f"""
+                        <div class="frase-header">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                                <h4 style="margin:0; color:#1E3A8A;">{f1['empresa']}</h4>
+                                <span class="badge badge-blue">{f1['documento']}</span>
                             </div>
-                            """, unsafe_allow_html=True)
+                            <div style="color:#64748B; font-size:0.9rem;">
+                                <strong>Motivo:</strong> {f1['motivo']}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        # Corpo em st.code (botão de copiar aparece no hover)
+                        st.code(f1['conteudo'], language="text")
+
+                    # --- ITEM 2 (se existir) ---
                     if i + 1 < len(filtrados):
                         f2 = filtrados[i+1]
                         with row_c2:
-                            with st.container():
-                                st.markdown(f"""
-                                <div class="frase-card">
-                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                                        <h4 style="margin:0; color:#1E3A8A;">{f2['empresa']}</h4>
-                                        <span class="badge badge-blue">{f2['documento']}</span>
-                                    </div>
-                                    <div style="color:#64748B; font-size:0.9rem; margin-bottom:10px;">
-                                        <strong>Motivo:</strong> {f2['motivo']}
-                                    </div>
-                                    <div style="background:#F1F5F9; padding:10px; border-radius:8px; font-family:monospace; font-size:0.85rem; color:#334155;">
-                                        {f2['conteudo']}
-                                    </div>
+                            st.markdown(f"""
+                            <div class="frase-header">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                                    <h4 style="margin:0; color:#1E3A8A;">{f2['empresa']}</h4>
+                                    <span class="badge badge-blue">{f2['documento']}</span>
                                 </div>
-                                """, unsafe_allow_html=True)
-                    st.write("")
+                                <div style="color:#64748B; font-size:0.9rem;">
+                                    <strong>Motivo:</strong> {f2['motivo']}
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            st.code(f2['conteudo'], language="text")
+                    
+                    st.write("") # Espaçamento vertical
 
         # ======================================================================
         # PÁGINA: ADICIONAR
