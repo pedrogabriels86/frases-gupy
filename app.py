@@ -26,7 +26,7 @@ except: pass
 # --- 1. CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Frases de Recusa - Gupy", page_icon=favicon, layout="wide")
 
-# --- CSS MODERNO (COM CENTRALIZAÇÃO FORÇADA) ---
+# --- CSS MODERNO (COM REMOÇÃO TOTAL DE MENUS E RODAPÉS) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -34,10 +34,17 @@ st.markdown("""
     * { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #F5F7FA; }
     
-    /* REMOVER BARRA SUPERIOR E RODAPÉ */
+    /* --- ESCONDER TUDO QUE É DO STREAMLIT (Menu, Header, Footer) --- */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
     [data-testid="stHeader"] { display: none; }
-    footer { display: none; }
-    .block-container { padding-top: 2rem !important; }
+    
+    /* Ajustar o topo para não ficar buraco vazio */
+    .block-container {
+        padding-top: 2rem !important;
+        padding-bottom: 2rem !important;
+    }
     
     /* SIDEBAR */
     section[data-testid="stSidebar"] { background-color: #00122F; }
@@ -71,9 +78,15 @@ st.markdown("""
         border-color: #2175D9; box-shadow: 0 0 0 2px rgba(33, 117, 217, 0.2);
     }
     
-    /* LOGO FALLBACK */
+    /* Expander mais limpo */
+    .streamlit-expanderHeader {
+        background-color: white;
+        border-radius: 6px;
+    }
+    
+    /* Logo Fallback Text */
     .logo-text {
-        font-size: 2rem; font-weight: 800; color: #2175D9; letter-spacing: -1px; text-align: center;
+        font-size: 2rem; font-weight: 800; color: #2175D9; letter-spacing: -1px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -112,32 +125,15 @@ def limpar_coluna(col):
 if "usuario_logado" not in st.session_state: st.session_state["usuario_logado"] = None
 
 if st.session_state["usuario_logado"] is None:
-    # Centralização Vertical e Horizontal
-    st.write(""); st.write(""); st.write("")
-    
-    # Colunas para centralizar o cartão de login na tela (1 - 1.2 - 1)
-    c_esq, c_centro, c_dir = st.columns([1, 1.2, 1])
-    
-    with c_centro:
+    c1, c2, c3 = st.columns([1,1.2,1])
+    with c2:
+        st.write(""); st.write("")
         with st.container(border=True):
-            # --- 1. LOGO CENTRALIZADA ---
-            # Usamos 3 colunas DENTRO do cartão para empurrar a imagem pro meio
-            cl, cm, cr = st.columns([1, 2, 1])
-            with cm:
-                if LOGO_URL: 
-                    st.image(LOGO_URL, use_container_width=True)
-                else: 
-                    st.markdown("<h1 class='logo-text'>gupy</h1>", unsafe_allow_html=True)
-            
-            # --- 2. TÍTULO CENTRALIZADO ---
-            st.markdown("<h3 style='text-align:center; color:#555; margin-top:-10px;'>Frases de Recusa</h3>", unsafe_allow_html=True)
-            st.write("") # Espaço
-            
-            # --- 3. FORMULÁRIO ---
+            if LOGO_URL: st.image(LOGO_URL, width=150)
+            else: st.markdown("<h1 class='logo-text'>gupy</h1>", unsafe_allow_html=True)
+            st.markdown("<h3 style='text-align:left; color:#555;'>Frases de Recusa</h3>", unsafe_allow_html=True)
             with st.form("login"):
-                u = st.text_input("Usuário")
-                s = st.text_input("Senha", type="password")
-                st.write("")
+                u = st.text_input("Usuário"); s = st.text_input("Senha", type="password")
                 if st.form_submit_button("Acessar Plataforma", use_container_width=True):
                     user = verificar_login(u, s)
                     if user: st.session_state["usuario_logado"] = user; st.rerun()
@@ -311,7 +307,7 @@ else:
                             fm = st.text_input("Motivo", f['motivo'])
                             fc = st.text_area("Conteúdo", f['conteudo'])
                             c_save, c_del = st.columns([4, 1])
-                            if c_save.form_submit_button("💾 Salvar Alterações", use_container_width=True):
+                            if c_save.form_submit_button("💾 Salvar", use_container_width=True):
                                 supabase.table("frases").update({
                                     "empresa":padronizar(fe),"documento":padronizar(fd),"motivo":padronizar(fm),"conteudo":padronizar(fc,"frase"),
                                     "revisado_por":user['username'],"data_revisao":datetime.now().strftime('%Y-%m-%d')
