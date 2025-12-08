@@ -4,6 +4,7 @@ import pandas as pd
 import time
 from datetime import datetime
 import io
+import unicodedata
 
 # --- 1. CONFIGURAÇÃO GUPY ---
 st.set_page_config(page_title="Gupy Frases", page_icon="💙", layout="wide")
@@ -80,10 +81,17 @@ def buscar_usuarios(): return supabase.table("usuarios").select("*").order("id")
 def registrar_log(usuario, acao, detalhe):
     try: supabase.table("logs").insert({"usuario":usuario,"acao":acao,"detalhe":detalhe,"data_hora":datetime.now().strftime("%Y-%m-%d %H:%M:%S")}).execute()
     except: pass
+
 def padronizar(texto, tipo="titulo"):
     if not texto: return ""
     texto = str(texto).strip()
     return texto.title() if tipo == "titulo" else (texto[0].upper() + texto[1:])
+
+# FUNÇÃO NOVA: LIMPAR NOMES DAS COLUNAS (Tira acentos e espaços)
+def limpar_coluna(col):
+    col = str(col).lower().strip()
+    col = ''.join(c for c in unicodedata.normalize('NFD', col) if unicodedata.category(c) != 'Mn')
+    return col
 
 # --- 4. FRONTEND ---
 if "usuario_logado" not in st.session_state: st.session_state["usuario_logado"] = None
@@ -96,12 +104,9 @@ if st.session_state["usuario_logado"] is None:
     with c2:
         st.write(""); st.write("")
         with st.container(border=True):
-            if LOGO_URL:
-                st.image(LOGO_URL, width=150)
-            else:
-                st.markdown("<h1 class='logo-text'>gupy</h1>", unsafe_allow_html=True)
-                
-            st.markdown("<h3 style='text-align:left; color:#555;'>Biblioteca de Frases</h3>", unsafe_allow_html=True)
+            if LOGO_URL: st.image(LOGO_URL, width=150)
+            else: st.markdown("<h1 class='logo-text'>gupy</h1>", unsafe_allow_html=True)
+            st.markdown("<h3 style='text-align:left; color:#555;'>Frases de Recusa</h3>", unsafe_allow_html=True)
             with st.form("login"):
                 u = st.text_input("Usuário"); s = st.text_input("Senha", type="password")
                 if st.form_submit_button("Acessar Plataforma", use_container_width=True):
@@ -113,17 +118,12 @@ else:
     user = st.session_state["usuario_logado"]
     
     with st.sidebar:
-        if LOGO_URL:
-            st.image(LOGO_URL, width=140)
-        else:
-            st.markdown("## gupy<span style='color:#2175D9'>.</span>", unsafe_allow_html=True)
-        
+        if LOGO_URL: st.image(LOGO_URL, width=140)
+        else: st.markdown("## gupy<span style='color:#2175D9'>.</span>", unsafe_allow_html=True)
         st.caption(f"Olá, {user['username']}")
         st.divider()
-        
         opcoes = ["📂 Frases de Recusa", "📝 Adicionar Frases", "⚙️ Gerenciador"] if user['admin'] else ["📂 Frases de Recusa", "📝 Adicionar Frases"]
         page = st.radio("Navegação", opcoes, label_visibility="collapsed")
-        
         st.divider()
         if st.button("Sair", use_container_width=True): st.session_state["usuario_logado"] = None; st.rerun()
 
@@ -140,10 +140,7 @@ else:
             termo = c_busca.text_input("Busca Rápida", placeholder="🔎 Digite para pesquisar...", label_visibility="collapsed")
             dados = buscar_dados()
             filtrados = [f for f in dados if termo.lower() in str(f).lower()] if termo else dados
-            
-            with c_filtro:
-                st.caption(f"{len(filtrados)} resultados encontrados")
-            
+            with c_filtro: st.caption(f"{len(filtrados)} resultados encontrados")
             for f in filtrados:
                 with st.container(border=True):
                     col_info, col_cont = st.columns([1, 3])
@@ -169,42 +166,84 @@ else:
                         if nc:
                             ne, nd, nm = padronizar(ne), padronizar(nd), padronizar(nm); nc = padronizar(nc, "frase")
                             if len(supabase.table("frases").select("id").eq("conteudo", nc).execute().data) > 0:
-                                st.error("Esta frase já existe no banco de dados.")
+                                st.error("Frase duplicada.")
                             else:
                                 supabase.table("frases").insert({
                                     "empresa":ne,"documento":nd,"motivo":nm,"conteudo":nc,
                                     "revisado_por":user['username'],"data_revisao":datetime.now().strftime('%Y-%m-%d')
                                 }).execute()
                                 registrar_log(user['username'], "Criou Frase", f"{ne} - {nm}")
-                                st.success("Frase adicionada com sucesso!"); time.sleep(1); st.rerun()
+                                st.success("Adicionado!"); time.sleep(1); st.rerun()
 
             st.write("")
             st.markdown("#### Gerenciar Existentes")
             col_search, col_upload = st.columns([2, 1])
             q = col_search.text_input("🔎 Buscar registro para editar ou excluir...", placeholder="Digite palavras-chave")
             
+            # --- ÁREA DE IMPORTAÇÃO INTELIGENTE ---
             with col_upload:
                 with st.popover("📂 Importar Excel/CSV", use_container_width=True):
+                    st.info("O sistema tentará identificar as colunas automaticamente.")
                     upl = st.file_uploader("Arquivo", type=['csv','xlsx'])
+                    
                     if upl and st.button("Processar"):
                         try:
-                            df = pd.read_csv(upl) if upl.name.endswith('.csv') else pd.read_excel(upl)
-                            df.columns = [x.lower().strip() for x in df.columns]
-                            novos = []
-                            db_set = set([str(f['conteudo']).strip() for f in buscar_dados()])
-                            for _, r in df.iterrows():
-                                if 'empresa' in df.columns: r['empresa'] = padronizar(r['empresa'])
-                                if 'conteudo' in df.columns: r['conteudo'] = padronizar(r['conteudo'], 'frase')
-                                if str(r['conteudo']).strip() not in db_set:
-                                    item = {k: r[k] for k in ['empresa','documento','motivo','conteudo'] if k in df.columns}
-                                    item['revisado_por'] = user['username']; item['data_revisao'] = datetime.now().strftime('%Y-%m-%d')
-                                    novos.append(item)
-                            if novos:
-                                supabase.table("frases").insert(novos).execute()
-                                registrar_log(user['username'], "Importação em Massa", f"{len(novos)} itens")
-                                st.success(f"{len(novos)} frases importadas com sucesso!"); time.sleep(1); st.rerun()
-                        except: st.error("Erro ao processar o arquivo")
+                            # 1. Carregar DataFrame
+                            if upl.name.endswith('.csv'):
+                                try: df = pd.read_csv(upl)
+                                except: df = pd.read_csv(upl, encoding='latin-1', sep=';')
+                            else:
+                                df = pd.read_excel(upl)
 
+                            # 2. Normalizar colunas (tirar acentos e minúsculo)
+                            df.columns = [limpar_coluna(c) for c in df.columns]
+                            
+                            # 3. Mapear nomes comuns para o padrão do banco
+                            mapa_colunas = {
+                                'empresa solicitante': 'empresa', 'cliente': 'empresa',
+                                'tipo documento': 'documento', 'doc': 'documento',
+                                'motivo recusa': 'motivo', 'motivo da recusa': 'motivo', 'justificativa': 'motivo',
+                                'frase': 'conteudo', 'texto': 'conteudo', 'mensagem': 'conteudo', 'frase de recusa': 'conteudo'
+                            }
+                            df.rename(columns=mapa_colunas, inplace=True)
+
+                            # 4. Verificar se colunas essenciais existem
+                            cols_obrigatorias = ['empresa', 'documento', 'motivo', 'conteudo']
+                            colunas_presentes = [c for c in cols_obrigatorias if c in df.columns]
+                            
+                            if len(colunas_presentes) < 4:
+                                st.error(f"Não encontrei todas as colunas. Encontrei: {colunas_presentes}. O arquivo precisa ter: Empresa, Documento, Motivo e Conteúdo.")
+                            else:
+                                novos = []
+                                db_set = set([str(f['conteudo']).strip() for f in buscar_dados()])
+                                for _, r in df.iterrows():
+                                    # Pula linhas vazias
+                                    if pd.isna(r['conteudo']) or str(r['conteudo']).strip() == "": continue
+                                    
+                                    emp = padronizar(str(r['empresa']))
+                                    doc = padronizar(str(r['documento']))
+                                    mot = padronizar(str(r['motivo']))
+                                    cont = padronizar(str(r['conteudo']), 'frase')
+                                    
+                                    if cont not in db_set:
+                                        item = {
+                                            'empresa': emp, 'documento': doc, 'motivo': mot, 'conteudo': cont,
+                                            'revisado_por': user['username'], 
+                                            'data_revisao': datetime.now().strftime('%Y-%m-%d')
+                                        }
+                                        novos.append(item)
+                                        db_set.add(cont) # Evita duplicata no proprio arquivo
+                                
+                                if novos:
+                                    supabase.table("frases").insert(novos).execute()
+                                    registrar_log(user['username'], "Importação em Massa", f"{len(novos)} itens")
+                                    st.success(f"{len(novos)} frases importadas com sucesso!"); time.sleep(2); st.rerun()
+                                else:
+                                    st.warning("Nenhuma frase nova encontrada (todas já existiam ou arquivo vazio).")
+
+                        except Exception as e: st.error(f"Erro ao ler arquivo: {e}")
+
+            # Listagem de Edição
             dados = buscar_dados()
             lista_final = [f for f in dados if q.lower() in str(f).lower()] if q else dados
             
@@ -221,7 +260,6 @@ else:
                             fd = c_b.text_input("Documento", f['documento'])
                             fm = st.text_input("Motivo", f['motivo'])
                             fc = st.text_area("Conteúdo", f['conteudo'])
-                            
                             c_save, c_del = st.columns([4, 1])
                             if c_save.form_submit_button("💾 Salvar Alterações", use_container_width=True):
                                 supabase.table("frases").update({
@@ -257,19 +295,15 @@ else:
                                 supabase.table("usuarios").update({"trocar_senha":True}).eq("id", u['id']).execute()
                                 st.toast("Resetado!")
                             if u['username'] != user['username'] and c_y.button("Excluir", key=f"d{u['id']}", type="primary"):
-                                supabase.table("usuarios").delete().eq("id", u['id']).execute()
-                                registrar_log(user['username'], "Excluiu Usuário", u['username'])
-                                st.rerun()
+                                supabase.table("usuarios").delete().eq("id", u['id']).execute(); st.rerun()
             with t2:
                 st.subheader("Logs de Auditoria")
                 logs = supabase.table("logs").select("*").order("data_hora", desc=True).limit(50).execute().data
                 if logs: st.dataframe(pd.DataFrame(logs)[['data_hora','usuario','acao','detalhe']], use_container_width=True, height=200)
-                
                 st.write("---")
                 st.subheader("Backup")
                 full_data = buscar_dados()
                 if full_data: st.download_button("📥 Baixar CSV (Backup)", pd.DataFrame(full_data).to_csv(index=False).encode('utf-8'), "backup.csv", "text/csv")
-                
                 st.write("---")
                 st.subheader("Zona de Perigo")
                 check = st.text_input("Para limpar todas as frases digite: QUERO APAGAR TUDO")
