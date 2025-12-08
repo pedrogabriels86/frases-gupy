@@ -25,20 +25,94 @@ except: pass
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. CSS AVANÇADO
+# 2. CSS PROFISSIONAL (MENU MODERNO & HEADER FIXO)
 # ==============================================================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    /* GERAL */
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #F8FAFC; }
-    header[data-testid="stHeader"], footer, div[data-testid="stToolbar"] { display: none; }
     
-    .nav-container { background: white; padding: 1rem 2rem; border-bottom: 1px solid #E2E8F0; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    /* REMOVER ITENS PADRÃO DO STREAMLIT */
+    header[data-testid="stHeader"] { display: none; }
+    footer { display: none; }
+    div[data-testid="stToolbar"] { display: none; }
+
+    /* REDUZIR ESPAÇO NO TOPO (CRUCIAL PARA "SUBIR" O MENU) */
+    .block-container {
+        padding-top: 1rem !important; /* Muito menos espaço no topo */
+        padding-bottom: 5rem;
+        max-width: 100%;
+    }
+
+    /* BARRA DE NAVEGAÇÃO FIXA (STICKY HEADER) */
+    .nav-wrapper {
+        position: sticky;
+        top: 0;
+        z-index: 999;
+        background-color: #FFFFFF;
+        border-bottom: 1px solid #E2E8F0;
+        padding: 0.8rem 2rem;
+        margin: -1rem -4rem 2rem -4rem; /* Margens negativas para cobrir as laterais */
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    /* ESTILIZAÇÃO DO MENU (TRANSFORMAR RADIO EM ABAS) */
+    .stRadio > div[role="radiogroup"] {
+        display: flex;
+        gap: 8px;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+    }
+
+    /* Esconder a bolinha do radio */
+    .stRadio > div[role="radiogroup"] label > div:first-child {
+        display: none; 
+    }
+
+    /* Estilo do botão do menu (Label) */
+    .stRadio > div[role="radiogroup"] label {
+        background-color: transparent;
+        border: 1px solid transparent;
+        padding: 6px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        color: #64748B;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+
+    /* Efeito Hover */
+    .stRadio > div[role="radiogroup"] label:hover {
+        background-color: #F1F5F9;
+        color: #0F172A;
+    }
+
+    /* Item Selecionado (Ativo) - Fundo Azul, Texto Branco */
+    .stRadio > div[role="radiogroup"] label[data-checked="true"] {
+        background-color: #2563EB !important; /* Azul Gupy */
+        color: white !important;
+        font-weight: 600;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    /* CARDS */
     .frase-header { background-color: white; border-radius: 12px 12px 0 0; border: 1px solid #E2E8F0; border-bottom: none; padding: 15px 20px; }
     .card-meta { margin-top: 10px; padding-top: 10px; border-top: 1px solid #F1F5F9; font-size: 0.75rem; color: #94A3B8; display: flex; justify-content: space-between; align-items: center; }
     .stCodeBlock { border: 1px solid #E2E8F0; border-top: none; border-radius: 0 0 12px 12px; background-color: white !important; }
-    .stButton button { border-radius: 8px; font-weight: 600; transition: all 0.2s; }
+    
+    /* BOTÕES */
+    .stButton button { border-radius: 6px; font-weight: 600; transition: all 0.2s; height: auto; padding: 0.4rem 1rem; }
+    
+    /* BADGES */
     .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
     .badge-blue { background: #DBEAFE; color: #1E40AF; }
 </style>
@@ -73,45 +147,31 @@ def padronizar(texto, tipo="titulo"): return (str(texto).strip().title() if tipo
 def limpar_coluna(col): return ''.join(c for c in unicodedata.normalize('NFD', str(col).lower().strip()) if unicodedata.category(c) != 'Mn')
 
 # ==============================================================================
-# 4. SISTEMA DE AUTENTICAÇÃO BLINDADO (CORREÇÃO DO ERRO DUPLICATE KEY)
+# 4. SISTEMA DE AUTENTICAÇÃO
 # ==============================================================================
+if "usuario_logado" not in st.session_state: st.session_state["usuario_logado"] = None
+if "logout_sync" not in st.session_state: st.session_state["logout_sync"] = False
 
-# Inicializa variáveis de controle
-if "usuario_logado" not in st.session_state:
-    st.session_state["usuario_logado"] = None
-if "logout_sync" not in st.session_state:
-    st.session_state["logout_sync"] = False
-
-# Instancia o Gerenciador
 cookie_manager = stx.CookieManager(key="main_auth")
 
-# LÓGICA DE RECUPERAÇÃO DE COOKIE
-# Só executa se não estiver logado E se não tiver acabado de deslogar (logout_sync)
 if st.session_state["usuario_logado"] is None:
-    
-    # Se acabamos de clicar em sair, resetamos a flag e NÃO verificamos cookies agora
     if st.session_state["logout_sync"]:
         st.session_state["logout_sync"] = False
-    
     else:
-        # Tenta ler cookies normalmente
         cookies = cookie_manager.get_all()
-        
-        # Retry para garantir leitura correta
         if not cookies:
-            with st.spinner("Carregando..."):
+            with st.spinner("Conectando..."):
                 time.sleep(1) 
                 cookies = cookie_manager.get_all()
         
         token = cookies.get("gupy_user_token") if cookies else None
-        
         if token:
             user_db = recuperar_usuario_cookie(token)
             if user_db:
                 st.session_state["usuario_logado"] = user_db
 
 # ==============================================================================
-# 5. RENDERIZAÇÃO DAS TELAS
+# 5. RENDERIZAÇÃO
 # ==============================================================================
 
 # --- TELA DE LOGIN ---
@@ -131,7 +191,6 @@ if st.session_state["usuario_logado"] is None:
                 if st.form_submit_button("Acessar Plataforma", use_container_width=True, type="primary"):
                     user = verificar_login(u, s)
                     if user:
-                        # Login OK
                         st.session_state["usuario_logado"] = user
                         expires = datetime.now() + timedelta(days=7)
                         cookie_manager.set("gupy_user_token", u, expires_at=expires)
@@ -144,34 +203,49 @@ else:
     user = st.session_state["usuario_logado"]
     dados_totais = buscar_dados()
     
-    # NAVBAR
-    with st.container():
-        c_nav_logo, c_nav_menu, c_nav_user = st.columns([1, 3, 1], gap="medium")
-        with c_nav_logo:
-             if LOGO_URL: st.image(LOGO_URL, width=80)
-             else: st.markdown("### Gupy")
-        with c_nav_menu:
-            opcoes = ["Biblioteca", "Adicionar", "Manutenção"]
-            icons = ["📂", "➕", "✏️"]
-            if user['admin']: opcoes.append("Admin"); icons.append("⚙️")
-            opcoes_fmt = [f"{icons[i]} {opcoes[i]}" for i in range(len(opcoes))]
-            page_sel = st.radio("Navegação", options=opcoes_fmt, horizontal=True, label_visibility="collapsed")
-            page = opcoes[opcoes_fmt.index(page_sel)]
-        with c_nav_user:
-            c_u_text, c_u_btn = st.columns([2, 1])
-            with c_u_text: st.markdown(f"<div style='text-align:right; font-size:0.85rem; color:#64748B; margin-top:5px;'>Olá, <b>{user['username']}</b></div>", unsafe_allow_html=True)
-            with c_u_btn:
-                # LOGOUT COM FLAG DE SINCRONIZAÇÃO
-                if st.button("Sair", key="btn_logout"):
-                    # 1. Apaga o cookie
-                    cookie_manager.delete("gupy_user_token")
-                    # 2. Limpa a sessão
-                    st.session_state["usuario_logado"] = None
-                    # 3. Ativa a flag para pular a verificação na próxima recarga
-                    st.session_state["logout_sync"] = True
-                    # 4. Recarrega
-                    st.rerun()
-    st.markdown("---") 
+    # --- HEADER PROFISSIONAL (FIXO) ---
+    # Usamos HTML/CSS puro para o container fixo para garantir que ele fique no topo
+    st.markdown('<div class="nav-wrapper">', unsafe_allow_html=True)
+    
+    # Criamos colunas DENTRO desse wrapper visual
+    c_logo, c_menu, c_user = st.columns([1, 3, 1], vertical_alignment="center")
+    
+    with c_logo:
+         if LOGO_URL: st.image(LOGO_URL, width=90) # Logo um pouco maior
+         else: st.markdown("### Gupy")
+
+    with c_menu:
+        # Opções do Menu
+        opcoes_map = {"Biblioteca": "📂 Biblioteca", "Adicionar": "➕ Adicionar", "Manutenção": "✏️ Gestão"}
+        if user['admin']: opcoes_map["Admin"] = "⚙️ Admin"
+        
+        opcoes_chaves = list(opcoes_map.keys())
+        opcoes_labels = list(opcoes_map.values())
+        
+        # O st.radio agora parece botões graças ao CSS
+        page_sel = st.radio("Menu", options=opcoes_labels, horizontal=True, label_visibility="collapsed")
+        
+        # Reverse lookup para saber qual pagina carregar
+        page = [k for k, v in opcoes_map.items() if v == page_sel][0]
+
+    with c_u_user:
+        c_name, c_btn = st.columns([2, 1], vertical_alignment="center")
+        with c_name:
+            st.markdown(f"<div style='text-align:right; font-size:0.85rem; color:#475569; line-height:1.2;'>Olá, <br><b>{user['username']}</b></div>", unsafe_allow_html=True)
+        with c_btn:
+            if st.button("Sair", key="btn_logout"):
+                cookie_manager.delete("gupy_user_token")
+                st.session_state["usuario_logado"] = None
+                st.session_state["logout_sync"] = True
+                st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True) # Fecha nav-wrapper
+    
+    # Espaço para compensar o header fixo
+    st.write("") 
+    st.write("")
+
+    # --- LÓGICA DE PÁGINAS ---
 
     if user.get('trocar_senha'):
         st.warning("⚠️ Segurança: Sua senha precisa ser redefinida.")
@@ -195,7 +269,8 @@ else:
             if filtro_empresa != "Todas": filtrados = [f for f in filtrados if f['empresa'] == filtro_empresa]
             if termo: filtrados = [f for f in filtrados if termo.lower() in str(f).lower()]
 
-            st.markdown(f"**Resultados:** {len(filtrados)}")
+            st.markdown(f"<div style='margin-bottom:15px; color:#64748B;'>Encontrados <b>{len(filtrados)}</b> resultados</div>", unsafe_allow_html=True)
+            
             if not filtrados: st.info("Nenhum resultado encontrado.")
             else:
                 for i in range(0, len(filtrados), 2):
@@ -207,10 +282,10 @@ else:
                         st.markdown(f"""
                         <div class="frase-header">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                                <h4 style="margin:0; color:#1E3A8A;">{f1['empresa']}</h4>
+                                <h4 style="margin:0; color:#1E3A8A; font-weight:700;">{f1['empresa']}</h4>
                                 <span class="badge badge-blue">{f1['documento']}</span>
                             </div>
-                            <div style="color:#64748B; font-size:0.9rem;"><strong>Motivo:</strong> {f1['motivo']}</div>
+                            <div style="color:#64748B; font-size:0.9rem; margin-bottom:8px;">{f1['motivo']}</div>
                             <div class="card-meta"><span>👤 {author1}</span><span>📅 {date1}</span></div>
                         </div>
                         """, unsafe_allow_html=True)
@@ -224,10 +299,10 @@ else:
                             st.markdown(f"""
                             <div class="frase-header">
                                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                                    <h4 style="margin:0; color:#1E3A8A;">{f2['empresa']}</h4>
+                                    <h4 style="margin:0; color:#1E3A8A; font-weight:700;">{f2['empresa']}</h4>
                                     <span class="badge badge-blue">{f2['documento']}</span>
                                 </div>
-                                <div style="color:#64748B; font-size:0.9rem;"><strong>Motivo:</strong> {f2['motivo']}</div>
+                                <div style="color:#64748B; font-size:0.9rem; margin-bottom:8px;">{f2['motivo']}</div>
                                 <div class="card-meta"><span>👤 {author2}</span><span>📅 {date2}</span></div>
                             </div>
                             """, unsafe_allow_html=True)
@@ -361,7 +436,6 @@ else:
                 if logs: st.dataframe(pd.DataFrame(logs)[['data_hora', 'usuario', 'acao', 'detalhe']], use_container_width=True, hide_index=True)
                 st.write("---")
                 
-                # ZONA DE PERIGO
                 with st.expander("🚨 Zona de Perigo (Apagar Tudo)", expanded=False):
                     st.warning("⚠️ CUIDADO: Esta ação apagará TODAS as frases do banco de dados. Não é possível desfazer.")
                     chk = st.text_input("Para confirmar, digite: QUERO APAGAR TUDO")
