@@ -25,7 +25,7 @@ except: pass
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. CSS CUSTOMIZADO (Minimalista e Moderno)
+# 2. CSS CUSTOMIZADO (MÁXIMA ESTABILIDADE)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -34,34 +34,40 @@ st.markdown("""
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #F8FAFC; }
     
-    /* 1. Ocultar Elementos Streamlit Padrão */
+    /* 1. Ocultar e Zerar Margens/Paddings do Streamlit Padrão */
     header[data-testid="stHeader"], div[data-testid="stToolbar"], div[data-testid="stDecoration"], footer { 
         display: none !important; 
     }
-
-    /* 2. Puxar o conteúdo para o topo e ajustar padding */
+    
+    /* Zera Margem do Corpo Principal */
     .block-container {
         padding-top: 1rem !important; 
         padding-bottom: 5rem;
         margin-top: 0 !important;
         max-width: 100%;
+        padding-left: 5rem; /* Reintroduz o padding lateral padrão do wide */
+        padding-right: 5rem;
     }
     
-    /* 3. Estilo do Container do Header */
+    /* Zera Margens Internas de Colunas e Blocks que causam espaços indesejados */
+    div[data-testid^="stVerticalBlock"] > div:first-child > div:nth-child(2) {
+        margin-top: 0rem !important;
+        padding-top: 0rem !important;
+    }
+    
+    /* 2. Estilo do Container do Header (Fixo e Estável) */
     div[data-testid="stVerticalBlock"] > div:first-child > div:first-child { 
         background-color: white;
         border-bottom: 1px solid #E2E8F0;
-        padding: 1rem 2rem;
+        padding: 1rem 5rem; /* Ajustado para 5rem para corresponder ao padding do block-container */
         margin: -1rem -5rem 2rem -5rem; 
         box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
         z-index: 100;
         width: 100vw; 
     }
     
-    /* 4. Estilização do Menu (Tabs) */
-    .stRadio > div[role="radiogroup"] {
-        display: flex; gap: 8px; justify-content: center;
-    }
+    /* 3. Estilização do Menu (Tabs) - Mantido para estabilidade */
+    .stRadio > div[role="radiogroup"] { display: flex; gap: 8px; justify-content: center; }
     .stRadio > div[role="radiogroup"] label {
         padding: 6px 16px; border-radius: 6px; transition: all 0.2s ease;
         color: #64748B; font-weight: 500; font-size: 0.9rem;
@@ -71,16 +77,23 @@ st.markdown("""
         background-color: #2563EB !important; color: white !important;
         font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
-    .stRadio > div[role="radiogroup"] label > div:first-child { display: none; } /* Oculta bolinha do radio */
+    .stRadio > div[role="radiogroup"] label > div:first-child { display: none; }
 
-    /* 5. Alinhamento de Usuário e Botão SAIR no Header */
+    /* 4. Alinhamento de Usuário e Botão SAIR no Header */
     div[data-testid="stVerticalBlock"] > div:first-child > div:first-child > div:nth-child(3) > div {
         display: flex; align-items: center; justify-content: flex-end; 
         gap: 10px; height: 100%;
     }
     .user-text { text-align: right; font-size: 0.85rem; color: #475569; line-height: 1.2; }
     
-    /* 6. Estilo de Card/Código */
+    /* 5. Ajustes de Inputs para Alinhamento e Aparência */
+    /* Garante que inputs e selectbox se alinhem sem margens extras */
+    div[data-testid="stVerticalBlock"] div[data-testid="stTextInput"], 
+    div[data-testid="stVerticalBlock"] div[data-testid="stSelectbox"] {
+        margin-bottom: 0px !important; 
+    }
+    
+    /* Cards (Biblioteca) */
     .frase-header { background-color: white; border-radius: 12px 12px 0 0; border: 1px solid #E2E8F0; border-bottom: none; padding: 15px 20px; }
     .card-meta { margin-top: 10px; padding-top: 10px; border-top: 1px solid #F1F5F9; font-size: 0.75rem; color: #94A3B8; display: flex; justify-content: space-between; align-items: center; }
     .stCodeBlock { border: 1px solid #E2E8F0; border-top: none; border-radius: 0 0 12px 12px; background-color: white !important; }
@@ -88,20 +101,11 @@ st.markdown("""
     .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
     .badge-blue { background: #DBEAFE; color: #1E40AF; }
 
-    /* Estilo para Container de Busca/Filtro Compacto */
-    div[data-testid="stVerticalBlock"] div[data-testid="stTextInput"], 
-    div[data-testid="stVerticalBlock"] div[data-testid="stSelectbox"] {
-        margin-bottom: 0px !important; 
-    }
-    
-    /* Ajuste para o Expander (Manutenção) */
-    .stExpander details summary p { color: #1E3A8A; font-weight: 600; }
-
 </style>
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. CONEXÃO E FUNÇÕES
+# 3. CONEXÃO E FUNÇÕES (Sem alterações)
 # ==============================================================================
 try:
     url_db = st.secrets["SUPABASE_URL"]
@@ -111,7 +115,7 @@ except:
     st.error("Erro de configuração: Secrets não encontrados.")
     st.stop()
 
-# Funções de DB e Utilitárias (Mantidas, apenas a busca foi ajustada para melhor clareza)
+# Funções de DB e Utilitárias
 def verificar_login(u, s):
     try: res = supabase.table("usuarios").select("*").eq("username", u).eq("senha", s).execute(); return res.data[0] if res.data else None
     except: return None
@@ -140,7 +144,7 @@ def limpar_coluna(col):
     return ''.join(c for c in unicodedata.normalize('NFD', str(col).lower().strip()) if unicodedata.category(c) != 'Mn')
 
 # ==============================================================================
-# 4. SISTEMA DE AUTENTICAÇÃO
+# 4. SISTEMA DE AUTENTICAÇÃO (Sem alterações)
 # ==============================================================================
 if "usuario_logado" not in st.session_state: st.session_state["usuario_logado"] = None
 if "logout_sync" not in st.session_state: st.session_state["logout_sync"] = False
@@ -159,26 +163,27 @@ if st.session_state["usuario_logado"] is None:
                 st.session_state["usuario_logado"] = user_db
 
 # ==============================================================================
-# 5. FUNÇÕES DE RENDERIZAÇÃO POR PÁGINA (Novo: Organização por Função)
+# 5. FUNÇÕES DE RENDERIZAÇÃO POR PÁGINA (Ajustadas para Estabilidade)
 # ==============================================================================
 
 def render_biblioteca(dados_totais, user):
     """Renderiza a página Biblioteca com busca e exibição em cards."""
     st.subheader("Biblioteca de Frases")
     
-    # CONTAINER DE BUSCA E FILTRO (Mais compacto)
+    # CONTAINER DE BUSCA E FILTRO (Mantido e estável)
     with st.container(border=True): 
         c_search, c_filter = st.columns([5, 2]) 
         
         with c_search:
+            # Usando key para garantir que o estado é rastreado
             termo = st.text_input("Pesquisa Inteligente", 
                                 placeholder="🔎 Busque por empresa, motivo ou conteúdo...", 
-                                label_visibility="collapsed")
+                                label_visibility="collapsed", key="lib_search_term")
         
         with c_filter:
             filtro_empresa = st.selectbox("Filtrar Empresa", 
                                             ["Todas"] + sorted(list(set(d['empresa'] for d in dados_totais))), 
-                                            label_visibility="collapsed")
+                                            label_visibility="collapsed", key="lib_filter_empresa")
     
     # LÓGICA DE FILTRAGEM
     filtrados = dados_totais
@@ -194,13 +199,12 @@ def render_biblioteca(dados_totais, user):
 
     st.markdown(f"<div style='margin-top: 15px; margin-bottom:15px; color:#64748B;'>Encontrados <b>{len(filtrados)}</b> resultados</div>", unsafe_allow_html=True)
     
-    # EXIBIÇÃO DOS CARDS EM DUAS COLUNAS
+    # EXIBIÇÃO DOS CARDS EM DUAS COLUNAS (Mantido e estável)
     if not filtrados: st.info("Nenhum resultado encontrado.")
     else:
         for i in range(0, len(filtrados), 2):
             row_c1, row_c2 = st.columns(2)
             
-            # Helper para renderizar um card
             def render_frase_card(container, frase):
                 author = frase.get('revisado_por', 'Sistema')
                 date = frase.get('data_revisao', '')
@@ -223,27 +227,27 @@ def render_biblioteca(dados_totais, user):
                 render_frase_card(row_c2, filtrados[i+1])
                 
 def render_adicionar(dados_totais, user):
-    """Renderiza a página Adicionar (Manual e Importação)."""
+    """Renderiza a página Adicionar. O formulário manual não será centralizado, mas usará colunas 
+    para melhor alinhamento, como na sua primeira versão, mas com ênfase no design claro."""
     st.markdown("### Adicionar Novas Frases")
     tab_man, tab_imp = st.tabs(["✍️ Manual", "📥 Importação em Massa"])
     
     with tab_man:
-        # Formulário Centralizado para maior foco
-        c_e, c_f, c_d = st.columns([1, 2, 1])
-        with c_f:
-            with st.form("add_single", border=True):
-                st.subheader("Registro Manual")
+        with st.container(border=True):
+            st.subheader("Registro Manual")
+            with st.form("add_single", clear_on_submit=True):
                 c1, c2 = st.columns(2)
-                ne = c1.text_input("Empresa Solicitante", placeholder="Ex: Gupy Tech"); 
-                nd = c2.text_input("Tipo de Documento", placeholder="Ex: Carta Recusa");
-                nm = st.text_input("Motivo da Recusa", placeholder="Ex: Baixa Qualificação"); 
-                nc = st.text_area("Texto da Frase (Conteúdo)", height=150, placeholder="Prezado(a), Agradecemos o seu interesse...");
+                ne = c1.text_input("Empresa Solicitante", placeholder="Ex: Gupy Tech", key="add_ne"); 
+                nd = c2.text_input("Tipo de Documento", placeholder="Ex: Carta Recusa", key="add_nd");
+                nm = st.text_input("Motivo da Recusa", placeholder="Ex: Baixa Qualificação", key="add_nm"); 
+                nc = st.text_area("Texto da Frase (Conteúdo)", height=150, placeholder="Prezado(a), Agradecemos o seu interesse...", key="add_nc");
                 
                 st.write("---")
                 if st.form_submit_button("✅ Salvar Novo Registro", type="primary", use_container_width=True):
                     if ne and nd and nm and nc:
                         ne_p, nd_p, nm_p = padronizar(ne), padronizar(nd), padronizar(nm); nc_p = padronizar(nc, "frase")
-                        if [d for d in dados_totais if d.get('conteudo') == nc_p]: st.error("Frase idêntica já existe.")
+                        if [d for d in dados_totais if d.get('conteudo') == nc_p]: 
+                             st.error("Frase idêntica já existe.")
                         else:
                             supabase.table("frases").insert({
                                 "empresa":ne_p, "documento":nd_p, "motivo":nm_p, "conteudo":nc_p, 
@@ -253,13 +257,13 @@ def render_adicionar(dados_totais, user):
                             st.toast("✅ Salvo com sucesso!"); 
                             time.sleep(1); 
                             st.cache_data.clear(); 
-                            st.rerun()
+                            st.rerun() # Força a re-renderização para limpar o form
                     else: st.warning("Preencha todos os campos obrigatórios.")
 
     with tab_imp:
-        st.info("Colunas obrigatórias: **Empresa**, **Documento**, **Motivo** e **Conteudo**.")
+        st.info("Colunas obrigatórias: **Empresa**, **Documento**, **Motivo** e **Conteudo**. A coluna `Revisado Por` é opcional.")
         upl = st.file_uploader("Selecione um Arquivo CSV ou XLSX", type=['csv','xlsx'])
-        if upl and st.button("Processar Arquivo", type="primary"):
+        if upl and st.button("Processar Arquivo", type="primary", key="btn_process_imp"):
             # Lógica de Importação (Mantida)
             try:
                 if upl.name.endswith('.csv'):
@@ -278,11 +282,10 @@ def render_adicionar(dados_totais, user):
                 if not all(c in df.columns for c in ['empresa', 'documento', 'motivo', 'conteudo']): 
                     st.error("Colunas obrigatórias ausentes.")
                 else:
-                    novos = []; db_conteudos = set(d.get('conteudo') for d in dados_totais if d.get('conteudo')) # Garante que não é None
+                    novos = []; db_conteudos = set(d.get('conteudo') for d in dados_totais if d.get('conteudo'))
                     
                     for _, row in df.iterrows():
                         cont = padronizar(str(row['conteudo']), 'frase')
-                        # Verifica se o conteúdo é válido e não está duplicado
                         if cont and cont not in db_conteudos:
                             autor_final = user['username']
                             if 'revisado_por' in df.columns and pd.notna(row['revisado_por']) and str(row['revisado_por']).strip():
@@ -306,40 +309,39 @@ def render_adicionar(dados_totais, user):
 def render_manutencao(dados_totais, user):
     """Renderiza a página de Manutenção com expansores para edição."""
     st.markdown("### Gerenciar e Editar Registros")
-    q = st.text_input("Buscar por Frase, Empresa ou Motivo para editar...", placeholder="Digite para filtrar a lista...")
+    q = st.text_input("Buscar por Frase, Empresa ou Motivo para editar...", placeholder="Digite para filtrar a lista...", key="maint_search")
     
-    # Filtra os dados (Sem limite padrão, para evitar confusão)
+    # Filtra os dados
     filtrados_manut = [f for f in dados_totais if q.lower() in str(f).lower()] if q else dados_totais
 
     if not filtrados_manut: 
-        st.warning("Nada encontrado. Digite um termo de busca para listar ou volte à Biblioteca.")
+        st.warning("Nenhum registro encontrado. Digite um termo para filtrar ou verifique os dados.")
         return
         
     st.markdown(f"**Total de resultados:** {len(filtrados_manut)}")
     st.write("---")
 
     for item in filtrados_manut:
-        # Título do Expander mais descritivo e limpo
         with st.expander(f"🏢 {item['empresa']} | {item['motivo']}"):
             with st.form(f"edit_{item['id']}"):
                 st.markdown(f"##### Editando Registro ID: {item['id']}")
                 c1, c2, c3 = st.columns([1,1,1])
-                ne = c1.text_input("Empresa", item['empresa']); 
-                nd = c2.text_input("Documento", item['documento']); 
-                nm = c3.text_input("Motivo", item['motivo'])
+                ne = c1.text_input("Empresa", item['empresa'], key=f"e_{item['id']}"); 
+                nd = c2.text_input("Documento", item['documento'], key=f"d_{item['id']}"); 
+                nm = c3.text_input("Motivo", item['motivo'], key=f"m_{item['id']}")
                 
-                nc = st.text_area("Conteúdo da Frase", item['conteudo'], height=150)
+                nc = st.text_area("Conteúdo da Frase", item['conteudo'], height=150, key=f"c_{item['id']}")
                 
                 c_auth, c_date = st.columns(2)
-                na = c_auth.text_input("Autor/Revisor", item.get('revisado_por', user['username']))
-                c_date.text_input("Data da Última Revisão", item.get('data_revisao', ''), disabled=True) # Mantém a data original
+                na = c_auth.text_input("Autor/Revisor", item.get('revisado_por', user['username']), key=f"a_{item['id']}")
+                c_date.text_input("Data da Última Revisão", item.get('data_revisao', ''), disabled=True) 
 
                 st.write("---")
                 c_s, c_d = st.columns([4, 1])
                 if c_s.form_submit_button("💾 Salvar Alterações", type="primary", use_container_width=True):
                     supabase.table("frases").update({
                         "empresa": ne, "documento": nd, "motivo": nm, "conteudo": nc, 
-                        "revisado_por": na, "data_revisao": datetime.now().strftime('%Y-%m-%d') # Atualiza a data
+                        "revisado_por": na, "data_revisao": datetime.now().strftime('%Y-%m-%d')
                     }).eq("id", item['id']).execute()
                     registrar_log(user['username'], "Edição", str(item['id'])); 
                     st.toast("✅ Salvo e Atualizado!"); 
@@ -347,26 +349,28 @@ def render_manutencao(dados_totais, user):
                     time.sleep(1); 
                     st.rerun()
                 
+                # Botão Excluir
                 if c_d.form_submit_button("🗑️ Excluir", use_container_width=True):
-                    # Confirmação simples
                     st.session_state[f"confirm_delete_{item['id']}"] = True
-                    
-            # Lógica de Confirmação (fora do form)
+                    st.rerun()
+            
+            # Lógica de Confirmação de Exclusão (Fora do Form)
             if st.session_state.get(f"confirm_delete_{item['id']}", False):
-                st.error("Tem certeza que deseja EXCLUIR este item?")
+                st.error("⚠️ Confirmação: Tem certeza que deseja EXCLUIR este item definitivamente?")
                 c_conf, c_canc = st.columns([1, 1])
-                if c_conf.button("Sim, Excluir Definitivamente", key=f"del_final_{item['id']}"):
+                if c_conf.button("Sim, Excluir Definitivamente", key=f"del_final_{item['id']}", type="primary"):
                     supabase.table("frases").delete().eq("id", item['id']).execute()
                     registrar_log(user['username'], "Exclusão", str(item['id'])); 
                     st.toast("Item Excluído."); 
+                    st.session_state.pop(f"confirm_delete_{item['id']}")
                     st.cache_data.clear(); 
                     time.sleep(1); 
                     st.rerun()
                 if c_canc.button("Cancelar", key=f"del_cancel_{item['id']}"):
-                    st.session_state[f"confirm_delete_{item['id']}"] = False
+                    st.session_state.pop(f"confirm_delete_{item['id']}")
                     st.rerun()
 
-def render_admin(user):
+def render_admin(user, dados_totais):
     """Renderiza a página Administrativa (apenas para admins)."""
     st.markdown("### Painel Administrativo 👑")
     tab_users, tab_logs = st.tabs(["👥 Gerenciar Usuários", "🔒 Logs & Backup"])
@@ -425,7 +429,7 @@ def render_admin(user):
 
         st.write("---")
         st.download_button("📥 Fazer Backup Completo (CSV)", 
-                           data=pd.DataFrame(buscar_dados()).to_csv(index=False).encode('utf-8'), 
+                           data=pd.DataFrame(dados_totais).to_csv(index=False).encode('utf-8'), 
                            file_name="backup_frases.csv", 
                            mime="text/csv")
         st.write("---")
@@ -474,7 +478,7 @@ if st.session_state["usuario_logado"] is None:
 # --- ÁREA LOGADA ---
 else:
     user = st.session_state["usuario_logado"]
-    dados_totais = buscar_dados() # Busca os dados apenas uma vez
+    dados_totais = buscar_dados()
 
     # 6.1 HEADER
     with st.container():
@@ -489,9 +493,9 @@ else:
             if user['admin']: opcoes_map["Admin"] = "⚙️ Admin"
             
             opcoes_labels = list(opcoes_map.values())
-            # Mantém a seleção de página na sessão para evitar piscadas
             if 'page_sel' not in st.session_state: st.session_state.page_sel = opcoes_labels[0]
             
+            # Usando key='page_sel' para persistência
             page_sel = st.radio("Menu", options=opcoes_labels, horizontal=True, label_visibility="collapsed", key='page_sel')
             page = [k for k, v in opcoes_map.items() if v == page_sel][0]
 
@@ -523,4 +527,4 @@ else:
         elif page == "Manutenção":
             render_manutencao(dados_totais, user)
         elif page == "Admin" and user['admin']:
-            render_admin(user)
+            render_admin(user, dados_totais)
