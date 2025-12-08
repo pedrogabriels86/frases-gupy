@@ -26,7 +26,7 @@ except: pass
 # --- 1. CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Frases de Recusa - Gupy", page_icon=favicon, layout="wide")
 
-# --- CSS MODERNO (Ocultando apenas o botão Manage/Deploy) ---
+# --- CSS MODERNO (REMOÇÃO TOTAL DO MENU DO STREAMLIT) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -34,18 +34,18 @@ st.markdown("""
     * { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #F5F7FA; }
     
-    /* --- ESCONDER APENAS BOTÕES DE DEPLOY/MANAGE --- */
-    /* Esconde a área de ações do cabeçalho (onde fica o Deploy) */
-    [data-testid="stHeaderActionElements"] {
-        display: none !important;
-    }
-    /* Reforço para garantir que botões de deploy sumam */
-    .stDeployButton {
-        display: none !important;
-    }
-    /* Garante que o menu hambúrguer e o resto do header permaneçam visíveis */
-    header[data-testid="stHeader"] {
-         visibility: visible !important;
+    /* --- ESCONDER ELEMENTOS DO STREAMLIT --- */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    [data-testid="stHeader"] {visibility: hidden;}
+    [data-testid="stToolbar"] {visibility: hidden;}
+    .stDeployButton {display:none;}
+    
+    /* Ajuste para o conteúdo subir */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 5rem !important;
     }
     
     /* SIDEBAR */
@@ -61,7 +61,7 @@ st.markdown("""
     .stButton > button:hover { background-color: #175BB5; color: white; }
     .stButton > button:active { transform: scale(0.98); }
     
-    /* CARTÕES DE GESTÃO */
+    /* CARTÕES */
     .card-container {
         background: white;
         border: 1px solid #E2E8F0;
@@ -80,13 +80,13 @@ st.markdown("""
         border-color: #2175D9; box-shadow: 0 0 0 2px rgba(33, 117, 217, 0.2);
     }
     
-    /* Expander mais limpo */
+    /* EXPANDER */
     .streamlit-expanderHeader {
         background-color: white;
         border-radius: 6px;
     }
     
-    /* Logo Fallback Text */
+    /* LOGO FALLBACK */
     .logo-text {
         font-size: 2rem; font-weight: 800; color: #2175D9; letter-spacing: -1px; text-align: center;
     }
