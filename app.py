@@ -24,23 +24,20 @@ st.markdown("""
     .stButton > button {
         border-radius: 6px; font-weight: 600; border: none;
         transition: transform 0.1s;
+        background-color: #2175D9; color: white;
     }
+    .stButton > button:hover { background-color: #175BB5; color: white; }
     .stButton > button:active { transform: scale(0.98); }
     
-    /* CARTÕES DE GESTÃO (O SEGREDO DO NOVO VISUAL) */
+    /* CARTÕES DE GESTÃO */
     .card-container {
         background: white;
         border: 1px solid #E2E8F0;
-        border-left: 4px solid #2175D9; /* Detalhe Gupy */
+        border-left: 4px solid #2175D9;
         border-radius: 8px;
         padding: 20px;
         margin-bottom: 15px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        transition: box-shadow 0.2s;
-    }
-    .card-container:hover {
-        box-shadow: 0 8px 16px rgba(0,0,0,0.05);
-        border-color: #2175D9;
     }
     
     /* INPUTS */
@@ -50,7 +47,12 @@ st.markdown("""
     .stTextInput input:focus, .stTextArea textarea:focus {
         border-color: #2175D9; box-shadow: 0 0 0 2px rgba(33, 117, 217, 0.2);
     }
-
+    
+    /* Expander mais limpo */
+    .streamlit-expanderHeader {
+        background-color: white;
+        border-radius: 6px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -101,7 +103,6 @@ else:
         st.markdown("### gupy<span style='color:#2175D9'>.</span>", unsafe_allow_html=True)
         st.caption(f"Olá, {user['username']}")
         st.divider()
-        # Menu Simplificado e Direto
         page = st.radio("MENU", ["Biblioteca", "Gestão Inteligente", "Administração"] if user['admin'] else ["Biblioteca", "Gestão Inteligente"])
         st.divider()
         if st.button("Sair", use_container_width=True): st.session_state["usuario_logado"] = None; st.rerun()
@@ -112,60 +113,60 @@ else:
             if n1==n2 and n1: supabase.table("usuarios").update({"senha":n1,"trocar_senha":False}).eq("id",user['id']).execute(); user['trocar_senha']=False; st.rerun()
 
     else:
-        # --- PÁGINA: BIBLIOTECA (VISUALIZAÇÃO) ---
+        # --- BIBLIOTECA ---
         if page == "Biblioteca":
             st.title("Biblioteca de Conteúdo")
             c_busca, c_filtro = st.columns([2,1])
-            termo = c_busca.text_input("🔍", placeholder="Pesquisar...", label_visibility="collapsed")
+            # CORREÇÃO AQUI: Removido prefix, usado placeholder
+            termo = c_busca.text_input("Busca Rápida", placeholder="🔎 Digite para pesquisar...", label_visibility="collapsed")
             dados = buscar_dados()
             filtrados = [f for f in dados if termo.lower() in str(f).lower()] if termo else dados
             
             with c_filtro:
-                st.caption(f"{len(filtrados)} resultados")
+                st.caption(f"{len(filtrados)} resultados encontrados")
             
-            # Visualização em Grid Limpo
             for f in filtrados:
                 with st.container(border=True):
                     col_info, col_cont = st.columns([1, 3])
                     with col_info:
                         st.markdown(f"**{f['empresa']}**")
-                        st.caption(f"{f['documento']} • {f['motivo']}")
+                        st.caption(f"{f['documento']}")
+                        st.caption(f"📌 {f['motivo']}")
                         if f.get('revisado_por'): st.caption(f"✅ {f['revisado_por']}")
                     with col_cont:
                         st.code(f['conteudo'], language="text")
 
-        # --- PÁGINA: GESTÃO INTELIGENTE (TOTALMENTE NOVA) ---
+        # --- GESTÃO INTELIGENTE ---
         elif page == "Gestão Inteligente":
             c_head, c_btn = st.columns([3, 1])
             c_head.title("Gestão de Registros")
             
-            # BOTÃO FLUTUANTE DE ADICIONAR (EXPANDER)
             with st.expander("➕  ADICIONAR NOVA FRASE (Clique para abrir)", expanded=False):
                 with st.form("quick_add"):
                     c1, c2, c3 = st.columns(3)
-                    ne = c1.text_input("Empresa")
-                    nd = c2.text_input("Documento")
-                    nm = c3.text_input("Motivo")
+                    ne = c1.text_input("Empresa"); nd = c2.text_input("Documento"); nm = c3.text_input("Motivo")
                     nc = st.text_area("Conteúdo")
                     if st.form_submit_button("💾 Salvar Registro", use_container_width=True):
                         if nc:
                             ne, nd, nm = padronizar(ne), padronizar(nd), padronizar(nm); nc = padronizar(nc, "frase")
-                            supabase.table("frases").insert({
-                                "empresa":ne,"documento":nd,"motivo":nm,"conteudo":nc,
-                                "revisado_por":user['username'],"data_revisao":datetime.now().strftime('%Y-%m-%d')
-                            }).execute()
-                            registrar_log(user['username'], "Create", f"{ne}-{nm}")
-                            st.success("Adicionado!"); time.sleep(1); st.rerun()
+                            if len(supabase.table("frases").select("id").eq("conteudo", nc).execute().data) > 0:
+                                st.error("Frase duplicada.")
+                            else:
+                                supabase.table("frases").insert({
+                                    "empresa":ne,"documento":nd,"motivo":nm,"conteudo":nc,
+                                    "revisado_por":user['username'],"data_revisao":datetime.now().strftime('%Y-%m-%d')
+                                }).execute()
+                                registrar_log(user['username'], "Create", f"{ne}-{nm}")
+                                st.success("Adicionado!"); time.sleep(1); st.rerun()
 
             st.write("")
-            
-            # BARRA DE FERRAMENTAS
             col_search, col_upload = st.columns([2, 1])
-            q = col_search.text_input("Buscar registro para editar...", prefix="🔎")
             
-            # UPLOAD RÁPIDO NO CANTO
+            # CORREÇÃO AQUI: Removido prefix, ajustado label
+            q = col_search.text_input("🔎 Buscar registro para editar...", placeholder="Digite palavras-chave")
+            
             with col_upload:
-                with st.popover("📂 Importar Excel/CSV"):
+                with st.popover("📂 Importar Excel/CSV", use_container_width=True):
                     upl = st.file_uploader("Arquivo", type=['csv','xlsx'])
                     if upl and st.button("Processar"):
                         try:
@@ -186,7 +187,6 @@ else:
                                 st.success(f"{len(novos)} importados!"); time.sleep(1); st.rerun()
                         except: st.error("Erro no arquivo")
 
-            # LISTAGEM INTELIGENTE (CARDS COM EDIÇÃO IN-PLACE)
             dados = buscar_dados()
             lista_final = [f for f in dados if q.lower() in str(f).lower()] if q else dados
             
@@ -194,12 +194,8 @@ else:
                 st.info("Nenhum registro encontrado.")
             else:
                 st.markdown(f"**Encontrados:** {len(lista_final)}")
-                
-                # AQUI ESTÁ A MUDANÇA: Lista de Cards Expansíveis
                 for f in lista_final:
-                    # O truque visual: Usar st.expander como "Cartão de Edição"
                     label_cartao = f"🏢 {f['empresa']}  |  📄 {f['documento']}  |  📌 {f['motivo']}"
-                    
                     with st.expander(label_cartao):
                         with st.form(f"edit_{f['id']}"):
                             c_a, c_b = st.columns(2)
@@ -215,19 +211,15 @@ else:
                                     "motivo":padronizar(fm),"conteudo":padronizar(fc,"frase"),
                                     "revisado_por":user['username'],"data_revisao":datetime.now().strftime('%Y-%m-%d')
                                 }).eq("id", f['id']).execute()
-                                registrar_log(user['username'], "Edit", str(f['id']))
-                                st.rerun()
-                                
+                                registrar_log(user['username'], "Edit", str(f['id'])); st.rerun()
                             if c_del.form_submit_button("🗑️ Excluir", type="primary", use_container_width=True):
                                 supabase.table("frases").delete().eq("id", f['id']).execute()
-                                registrar_log(user['username'], "Delete", str(f['id']))
-                                st.rerun()
+                                registrar_log(user['username'], "Delete", str(f['id'])); st.rerun()
 
-        # --- PÁGINA: ADMINISTRAÇÃO ---
+        # --- ADMINISTRAÇÃO ---
         elif page == "Administração" and user['admin']:
             st.title("Painel Admin")
             t1, t2 = st.tabs(["Usuários", "Sistema"])
-            
             with t1:
                 c_new, c_list = st.columns([1, 2])
                 with c_new:
@@ -237,27 +229,21 @@ else:
                         if st.button("Criar User", use_container_width=True):
                             supabase.table("usuarios").insert({"username":nu,"senha":ns,"admin":na,"trocar_senha":True}).execute()
                             registrar_log(user['username'], "New User", nu); st.rerun()
-                
                 with c_list:
                     users = buscar_usuarios()
                     for u in users:
                         with st.expander(f"{u['username']} {'(Admin)' if u['admin'] else ''}"):
                             c_x, c_y = st.columns(2)
                             if c_x.button("Resetar Senha", key=f"r{u['id']}"):
-                                supabase.table("usuarios").update({"trocar_senha":True}).eq("id", u['id']).execute()
-                                st.toast("Resetado!")
+                                supabase.table("usuarios").update({"trocar_senha":True}).eq("id", u['id']).execute(); st.toast("Resetado!")
                             if u['username'] != user['username'] and c_y.button("Excluir", key=f"d{u['id']}", type="primary"):
                                 supabase.table("usuarios").delete().eq("id", u['id']).execute(); st.rerun()
-
             with t2:
                 st.subheader("Segurança")
                 logs = supabase.table("logs").select("*").order("data_hora", desc=True).limit(50).execute().data
                 if logs: st.dataframe(pd.DataFrame(logs)[['data_hora','usuario','acao','detalhe']], use_container_width=True, height=200)
-                
                 full_data = buscar_dados()
-                if full_data:
-                    st.download_button("📥 Backup (CSV)", pd.DataFrame(full_data).to_csv(index=False).encode('utf-8'), "backup.csv", "text/csv")
-                
+                if full_data: st.download_button("📥 Backup (CSV)", pd.DataFrame(full_data).to_csv(index=False).encode('utf-8'), "backup.csv", "text/csv")
                 st.divider()
                 check = st.text_input("Para limpar frases digite: QUERO APAGAR TUDO")
                 if st.button("LIMPAR BANCO DE FRASES", type="primary"):
