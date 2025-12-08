@@ -2,6 +2,7 @@ import streamlit as st
 from supabase import create_client, Client
 import pandas as pd
 import time
+from datetime import datetime
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Frases Gupy", page_icon="📋", layout="wide")
@@ -77,7 +78,7 @@ else:
             
             opcoes_menu = ["🏠 Biblioteca", "📝 Gerenciar Frases", "👥 Gerenciar Usuários"]
             if user['admin']:
-                opcoes_menu.append("🚧 Super Admin (Danger)") # Só aparece para admin
+                opcoes_menu.append("🚧 Super Admin (Danger)") 
             opcoes_menu.append("Sair")
             
             menu = st.radio("Navegação", opcoes_menu)
@@ -114,6 +115,16 @@ else:
                         with st.container(border=True):
                             st.caption(f"🏢 {f['empresa']} | 📄 {f['documento']}")
                             st.code(f['conteudo'], language="text")
+                            # EXIBIÇÃO DA REVISÃO
+                            if f.get('revisado_por'):
+                                data_formatada = f['data_revisao']
+                                # Tenta formatar a data para ficar bonita (DD/MM/AAAA)
+                                try:
+                                    data_obj = datetime.strptime(f['data_revisao'], '%Y-%m-%d')
+                                    data_formatada = data_obj.strftime('%d/%m/%Y')
+                                except: pass
+                                st.markdown(f":white_check_mark: <small style='color:green'>Revisado por <b>{f['revisado_por']}</b> em {data_formatada}</small>", unsafe_allow_html=True)
+
             else: st.warning("Banco vazio.")
 
         # --- GERENCIAR FRASES ---
@@ -121,16 +132,34 @@ else:
             st.title("Gerenciar Frases")
             t1, t2, t3 = st.tabs(["➕ Nova", "✏️ Editar", "📤 Importar"])
             
+            # 1. NOVA
             with t1:
                 with st.form("add"):
-                    e = st.text_input("Empresa"); d = st.text_input("Documento"); m = st.text_input("Motivo"); c = st.text_area("Frase")
+                    col_a, col_b = st.columns(2)
+                    e = col_a.text_input("Empresa")
+                    d = col_b.text_input("Documento")
+                    m = st.text_input("Motivo")
+                    c = st.text_area("Frase")
+                    
+                    st.divider()
+                    st.caption("Informações de Auditoria (Opcional)")
+                    col_rev1, col_rev2 = st.columns(2)
+                    rev_por = col_rev1.text_input("Revisado Por")
+                    rev_data = col_rev2.date_input("Data da Revisão", value=None)
+
                     if st.form_submit_button("Salvar") and c:
                         if len(supabase.table("frases").select("id").eq("conteudo", c).execute().data) > 0:
                             st.error("Frase já existe!")
                         else:
-                            supabase.table("frases").insert({"empresa":e,"documento":d,"motivo":m,"conteudo":c}).execute()
+                            payload = {"empresa":e,"documento":d,"motivo":m,"conteudo":c}
+                            if rev_por and rev_data:
+                                payload["revisado_por"] = rev_por
+                                payload["data_revisao"] = str(rev_data)
+                                
+                            supabase.table("frases").insert(payload).execute()
                             st.success("Salvo!"); time.sleep(1); st.rerun()
             
+            # 2. EDITAR
             with t2:
                 dados = buscar_dados()
                 if dados:
@@ -139,27 +168,70 @@ else:
                     if sel:
                         obj = mapa[sel]
                         with st.form("edit"):
-                            ne = st.text_input("Empresa", obj['empresa']); nd = st.text_input("Documento", obj['documento'])
-                            nm = st.text_input("Motivo", obj['motivo']); nc = st.text_area("Conteúdo", obj['conteudo'])
+                            col_ea, col_eb = st.columns(2)
+                            ne = col_ea.text_input("Empresa", obj['empresa'])
+                            nd = col_eb.text_input("Documento", obj['documento'])
+                            nm = st.text_input("Motivo", obj['motivo'])
+                            nc = st.text_area("Conteúdo", obj['conteudo'])
+                            
+                            st.divider()
+                            col_er1, col_er2 = st.columns(2)
+                            
+                            # Logica para data: se vier do banco, converte para objeto data
+                            val_data = None
+                            if obj.get('data_revisao'):
+                                try: val_data = datetime.strptime(obj['data_revisao'], '%Y-%m-%d').date()
+                                except: pass
+                                
+                            n_rev = col_er1.text_input("Revisado Por", obj.get('revisado_por') or "")
+                            n_dat = col_er2.date_input("Data da Revisão", value=val_data)
+                            
                             c1, c2 = st.columns(2)
                             if c1.form_submit_button("Salvar"):
-                                supabase.table("frases").update({"empresa":ne,"documento":nd,"motivo":nm,"conteudo":nc}).eq("id", obj['id']).execute()
+                                update_payload = {
+                                    "empresa":ne,"documento":nd,"motivo":nm,"conteudo":nc,
+                                    "revisado_por": n_rev if n_rev else None,
+                                    "data_revisao": str(n_dat) if n_dat else None
+                                }
+                                supabase.table("frases").update(update_payload).eq("id", obj['id']).execute()
                                 st.success("Atualizado!"); time.sleep(1); st.rerun()
+                                
                             if c2.form_submit_button("Excluir", type="primary"):
                                 supabase.table("frases").delete().eq("id", obj['id']).execute()
                                 st.rerun()
             
+            # 3. IMPORTAR
             with t3:
+                st.markdown("**Colunas suportadas:** `empresa`, `documento`, `motivo`, `conteudo`, `revisado_por`, `data_revisao`.")
                 upl = st.file_uploader("CSV/Excel", type=['csv','xlsx'])
                 if upl and st.button("Importar"):
                     try:
                         df = pd.read_csv(upl) if upl.name.endswith('.csv') else pd.read_excel(upl)
                         df.columns = [c.lower().strip() for c in df.columns]
+                        
                         existentes = set([str(f['conteudo']).strip() for f in buscar_dados()])
-                        novos = [row for i, row in df.iterrows() if str(row['conteudo']).strip() not in existentes]
-                        if novos:
-                            supabase.table("frases").insert([{"empresa":r['empresa'],"documento":r['documento'],"motivo":r['motivo'],"conteudo":r['conteudo']} for r in novos]).execute()
-                            st.success(f"{len(novos)} frases importadas!")
+                        
+                        novos_objs = []
+                        for i, row in df.iterrows():
+                            if str(row['conteudo']).strip() not in existentes:
+                                item = {
+                                    "empresa": row['empresa'],
+                                    "documento": row['documento'],
+                                    "motivo": row['motivo'],
+                                    "conteudo": row['conteudo']
+                                }
+                                # Adiciona campos de revisão se existirem na planilha
+                                if 'revisado_por' in df.columns and pd.notna(row['revisado_por']):
+                                    item['revisado_por'] = str(row['revisado_por'])
+                                if 'data_revisao' in df.columns and pd.notna(row['data_revisao']):
+                                    # Tenta limpar a data para string YYYY-MM-DD
+                                    item['data_revisao'] = str(row['data_revisao']).split('T')[0]
+                                
+                                novos_objs.append(item)
+                                
+                        if novos_objs:
+                            supabase.table("frases").insert(novos_objs).execute()
+                            st.success(f"{len(novos_objs)} frases importadas!")
                         else: st.warning("Nenhuma frase nova.")
                         time.sleep(2); st.rerun()
                     except Exception as e: st.error(f"Erro: {e}")
@@ -197,49 +269,22 @@ else:
 
         # --- SUPER ADMIN (ZONA DE PERIGO) ---
         elif menu == "🚧 Super Admin (Danger)":
-            st.title("🚧 Zona de Perigo (Super Usuário)")
-            st.error("Atenção: As ações abaixo são irreversíveis. Use com extremo cuidado.")
-            
-            st.divider()
-            
-            col_danger1, col_danger2 = st.columns(2)
-            
-            # 1. APAGAR TODAS AS FRASES
-            with col_danger1:
+            st.title("🚧 Zona de Perigo")
+            st.error("Ações irreversíveis.")
+            col1, col2 = st.columns(2)
+            with col1:
                 with st.container(border=True):
-                    st.subheader("🔥 Apagar TODAS as Frases")
-                    st.write("Isso vai limpar a biblioteca inteira. O banco ficará vazio.")
-                    st.write(f"Total atual: **{len(buscar_dados())} frases**")
-                    
-                    with st.expander("Abrir controles de exclusão"):
-                        confirmacao_frase = st.text_input("Digite 'QUERO APAGAR TUDO' para confirmar:", key="del_all_phrases")
-                        
-                        if st.button("💣 EXCLUIR TODAS AS FRASES", type="primary"):
-                            if confirmacao_frase == "QUERO APAGAR TUDO":
-                                # Deleta tudo onde ID não é zero (ou seja, tudo)
-                                supabase.table("frases").delete().neq("id", 0).execute()
-                                st.toast("💥 Todas as frases foram deletadas!")
-                                time.sleep(2)
-                                st.rerun()
-                            else:
-                                st.warning("Frase de confirmação incorreta.")
-
-            # 2. APAGAR TODOS OS USUÁRIOS (MENOS VOCÊ)
-            with col_danger2:
+                    st.subheader("🔥 Apagar Frases")
+                    check = st.text_input("Digite 'QUERO APAGAR TUDO':")
+                    if st.button("EXCLUIR FRASES", type="primary"):
+                        if check == "QUERO APAGAR TUDO":
+                            supabase.table("frases").delete().neq("id", 0).execute()
+                            st.toast("Deletado!"); time.sleep(2); st.rerun()
+            with col2:
                 with st.container(border=True):
                     st.subheader("💀 Apagar Usuários")
-                    st.write("Isso exclui TODOS os usuários cadastrados, **exceto você**.")
-                    st.write(f"Total atual: **{len(buscar_usuarios())} usuários**")
-                    
-                    with st.expander("Abrir controles de exclusão"):
-                        confirmacao_user = st.text_input("Digite 'RESETAR USUARIOS' para confirmar:", key="del_all_users")
-                        
-                        if st.button("💣 EXCLUIR TODOS OS USUÁRIOS", type="primary"):
-                            if confirmacao_user == "RESETAR USUARIOS":
-                                # Deleta todos onde username é diferente do seu
-                                supabase.table("usuarios").delete().neq("username", user['username']).execute()
-                                st.toast(f"💥 Usuários deletados! Apenas {user['username']} restou.")
-                                time.sleep(2)
-                                st.rerun()
-                            else:
-                                st.warning("Frase de confirmação incorreta.")
+                    check2 = st.text_input("Digite 'RESETAR USUARIOS':")
+                    if st.button("EXCLUIR USUÁRIOS", type="primary"):
+                        if check2 == "RESETAR USUARIOS":
+                            supabase.table("usuarios").delete().neq("username", user['username']).execute()
+                            st.toast("Deletado!"); time.sleep(2); st.rerun()
