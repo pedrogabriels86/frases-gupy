@@ -234,7 +234,7 @@ else:
     
     else:
         # ======================================================================
-        # PÁGINA: BIBLIOTECA (Visualização Rica)
+        # PÁGINA: BIBLIOTECA
         # ======================================================================
         if page == "Biblioteca":
             m1, m2, m3, m4 = st.columns(4)
@@ -374,7 +374,7 @@ else:
                                 registrar_log(user['username'], "Exclusão", str(item['id'])); st.toast("Excluído."); st.cache_data.clear(); time.sleep(1); st.rerun()
 
         # ======================================================================
-        # PÁGINA: ADMIN (USUÁRIOS E LOGS) - CORRIGIDO
+        # PÁGINA: ADMIN (USUÁRIOS E LOGS) - ATUALIZADO COM EDIÇÃO
         # ======================================================================
         elif page == "Admin" and user['admin']:
             st.markdown("### Painel Administrativo")
@@ -397,42 +397,55 @@ else:
                             except: st.error("Erro ao criar usuário (talvez nome duplicado?)")
 
                 st.write("---")
-                st.subheader("Usuários Ativos")
+                st.subheader("Gerenciar Usuários")
                 
                 lista_usuarios = buscar_usuarios()
                 
-                # Lista de Cartões de Usuários
                 for u in lista_usuarios:
-                    with st.container(border=True):
-                        c_info, c_actions = st.columns([2, 2])
-                        
-                        with c_info:
-                            role = "👑 Administrador" if u['admin'] else "👤 Colaborador"
-                            cor_role = "#2563EB" if u['admin'] else "#475569"
-                            st.markdown(f"""
-                                <div style='font-size:1.1rem; font-weight:600;'>{u['username']}</div>
-                                <div style='font-size:0.8rem; color:{cor_role};'>{role}</div>
-                            """, unsafe_allow_html=True)
-                        
-                        with c_actions:
-                            # Botões de Ação
-                            b_col1, b_col2 = st.columns(2)
+                    # Título do Expander mostra o nome e o cargo atual
+                    role_label = "👑 Admin" if u['admin'] else "👤 User"
+                    
+                    with st.expander(f"{role_label} | {u['username']}"):
+                        # Formulário de Edição
+                        with st.form(key=f"edit_u_{u['id']}"):
+                            st.write("**Editar Permissões e Dados**")
+                            c_edit_1, c_edit_2 = st.columns(2)
                             
-                            # Resetar Senha
-                            if b_col1.button("🔄 Resetar Senha", key=f"rst_{u['id']}", help="O usuário terá que trocar a senha no próximo login"):
+                            new_username = c_edit_1.text_input("Nome de Usuário", value=u['username'])
+                            
+                            # Trava de segurança: Se for o próprio usuário logado, desabilita a checkbox de tirar admin
+                            disabled_admin = (u['id'] == user['id'])
+                            new_admin = c_edit_2.checkbox("Acesso de Administrador", value=u['admin'], disabled=disabled_admin)
+                            if disabled_admin:
+                                c_edit_2.caption("Você não pode remover seu próprio acesso de admin.")
+
+                            st.write("---")
+                            c_act_1, c_act_2, c_act_3 = st.columns([1, 1, 1])
+                            
+                            # Botão Salvar
+                            if c_act_1.form_submit_button("💾 Salvar Alterações", type="primary"):
+                                supabase.table("usuarios").update({
+                                    "username": new_username,
+                                    "admin": new_admin
+                                }).eq("id", u['id']).execute()
+                                registrar_log(user['username'], "Editou Usuário", u['username'])
+                                st.toast("Dados atualizados!")
+                                time.sleep(1)
+                                st.rerun()
+                            
+                            # Botão Resetar Senha
+                            if c_act_2.form_submit_button("🔄 Resetar Senha"):
                                 supabase.table("usuarios").update({"trocar_senha": True}).eq("id", u['id']).execute()
                                 st.toast(f"Senha de {u['username']} resetada!")
-                            
-                            # Excluir (Proteção para não se excluir a si mesmo)
+
+                            # Botão Excluir
                             if u['username'] != user['username']:
-                                if b_col2.button("🗑️ Excluir", key=f"del_{u['id']}", type="primary"):
+                                if c_act_3.form_submit_button("🗑️ Excluir Usuário"):
                                     supabase.table("usuarios").delete().eq("id", u['id']).execute()
                                     registrar_log(user['username'], "Excluiu Usuário", u['username'])
-                                    st.toast("Usuário removido.")
-                                    time.sleep(1)
                                     st.rerun()
                             else:
-                                b_col2.write("") # Espaço vazio se for o próprio usuário
+                                c_act_3.write("") # Espaço vazio
 
             with tab_logs:
                 logs = supabase.table("logs").select("*").order("data_hora", desc=True).limit(100).execute().data
