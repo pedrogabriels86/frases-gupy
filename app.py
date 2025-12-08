@@ -25,11 +25,11 @@ except: pass
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. CSS CUSTOMIZADO (SIMPLICIDADE E ESTABILIDADE MÁXIMA)
+# 2. CSS CUSTOMIZADO (RESPONSIVO E MODERNO - REVISADO)
 # ==============================================================================
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
     
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #F8FAFC; }
@@ -55,18 +55,18 @@ st.markdown("""
         border-bottom: 1px solid #E2E8F0;
         padding: 0.8rem 2rem; /* Ajustado para 2rem */
         margin: -0.8rem -2rem 1.5rem -2rem; 
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+        box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.05); /* Sombra mais suave */
         z-index: 100;
         width: 100vw; 
     }
 
-    /* 3. Estilização do Menu (Tabs) - Agora no corpo da página, com sombra de card */
+    /* 3. Estilização do Menu (Tabs) - Card de Navegação */
     .menu-container {
         padding: 0.5rem 0rem;
-        margin-bottom: 1.5rem;
-        border-radius: 8px;
+        margin-bottom: 2rem;
+        border-radius: 10px; /* Mais arredondado */
         background-color: white;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        box-shadow: 0 4px 8px -2px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.03); /* Sombra elevada */
         border: 1px solid #E2E8F0;
     }
     
@@ -76,39 +76,101 @@ st.markdown("""
         justify-content: center; /* Centraliza o Menu na página */
     } 
     
-    /* ... (Estilos de Botões e rádio mantidos) */
     .stRadio > div[role="radiogroup"] label {
-        padding: 5px 15px; 
-        border-radius: 6px; transition: all 0.2s ease;
-        color: #64748B; font-weight: 500; font-size: 0.9rem;
+        padding: 7px 18px; /* Mais espaçoso */
+        border-radius: 8px; transition: all 0.2s ease;
+        color: #475569; font-weight: 500; font-size: 0.95rem;
     }
     .stRadio > div[role="radiogroup"] label:hover { background-color: #F1F5F9; color: #0F172A; }
     .stRadio > div[role="radiogroup"] label[data-checked="true"] {
         background-color: #2563EB !important; color: white !important;
-        font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
     .stRadio > div[role="radiogroup"] label > div:first-child { display: none; }
 
-    /* 4. Alinhamento de Usuário e Botão SAIR no Header (Simplificado) */
+    /* 4. Alinhamento de Usuário e Botão SAIR no Header */
     div[data-testid="stVerticalBlock"] > div:first-child > div:first-child > div:nth-child(2) > div {
         display: flex; 
         align-items: center; 
         justify-content: flex-end; 
-        gap: 8px; 
+        gap: 12px; /* Maior separação */
         height: 100%;
         margin-top: 0; 
     }
     .user-text { 
         text-align: right; 
-        font-size: 0.8rem; 
+        font-size: 0.85rem; 
         color: #475569; 
         line-height: 1.1; 
         min-width: 60px; 
     }
-    .stButton button { padding: 0.3rem 0.8rem !important; } 
+    .stButton button { padding: 0.4rem 1rem !important; border-radius: 6px !important; } 
     
-    /* 5. Ajustes de Conteúdo (Compactação) */
-    .stCodeBlock { margin-bottom: 0.5rem; } /* Menos espaço entre o bloco de código e o próximo elemento */
+    /* 5. Estilização de Cards de Conteúdo (Geral) */
+    .content-card > div[data-testid="stVerticalBlock"] {
+        border: 1px solid #E2E8F0;
+        border-radius: 10px;
+        padding: 1rem;
+        background-color: white;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s;
+        height: 100%; /* Garante altura uniforme em colunas */
+    }
+    .content-card > div[data-testid="stVerticalBlock"]:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+        /* transform: translateY(-1px); */ /* Efeito sutil ao passar o mouse */
+    }
+
+    .frase-header h4 { 
+        color:#1E3A8A; 
+        font-weight: 700; 
+        font-size: 1.1rem; /* Um pouco maior */
+    }
+    .badge-blue {
+        background-color: #DBEAFE;
+        color: #1E3A8A;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+    }
+    .card-meta span {
+        font-size: 0.8rem;
+        color: #64748B;
+        margin-right: 15px;
+    }
+
+    /* 6. Estilização de Bloco de Código */
+    .stCodeBlock { 
+        margin-top: 0.8rem !important; 
+        margin-bottom: 0.5rem; 
+        padding: 0.8rem !important;
+        border-radius: 8px;
+        background-color: #f1f5f9 !important; /* Mais claro */
+        border: 1px solid #E2E8F0;
+        font-size: 0.9rem;
+    }
+
+    /* 7. Responsividade da Biblioteca (Frases em 1 coluna em telas pequenas) */
+    /* Adiciona margem entre os cards em colunas (desktop) */
+    div[data-testid="stHorizontalBlock"] > div {
+        margin-bottom: 1.5rem;
+    }
+    /* Força os cards a empilharem em telas menores que 768px */
+    @media (max-width: 768px) {
+        div[data-testid="stHorizontalBlock"] {
+            flex-direction: column;
+        }
+        div[data-testid="stHorizontalBlock"] > div {
+            width: 100% !important;
+            margin-bottom: 1.5rem; /* Espaçamento entre os cards empilhados */
+        }
+    }
+    
+    /* Remove a borda padrão do container que envolve o filtro/busca da biblioteca */
+    div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] {
+        border: none !important;
+    }
     
 </style>
 """, unsafe_allow_html=True)
@@ -150,7 +212,8 @@ def padronizar(texto, tipo="titulo"):
     return texto.title() if tipo == "titulo" else texto[0].upper() + texto[1:]
 
 def limpar_coluna(col): 
-    return ''.join(c for c in unicodedata.normalize('NFD', str(col).lower().strip()) if unicodeda_category(c) != 'Mn')
+    # Use 'unicodedata.category' e remova a dependência externa se possível (como estava na original, vou manter a chamada, mas a função embutida era 'category')
+    return ''.join(c for c in unicodedata.normalize('NFD', str(col).lower().strip()) if unicodedata.category(c) != 'Mn') # Corrigido unicodeda_category para unicodedata.category
 
 # ==============================================================================
 # 4. SISTEMA DE AUTENTICAÇÃO (Mantido)
@@ -172,66 +235,86 @@ if st.session_state["usuario_logado"] is None:
                 st.session_state["usuario_logado"] = user_db
 
 # ==============================================================================
-# 5. FUNÇÕES DE RENDERIZAÇÃO POR PÁGINA (Mantido o corpo, foco na chamada de Layout)
+# 5. FUNÇÕES DE RENDERIZAÇÃO POR PÁGINA (Ajuste na Biblioteca)
 # ==============================================================================
 
 def render_biblioteca(dados_totais, user):
     """Renderiza a página Biblioteca com busca e exibição em cards."""
-    # ... (Conteúdo da função render_biblioteca mantido)
-    with st.container(border=True): 
+    # O container foi removido para usar o design em card apenas nos resultados.
+    # Apenas o bloco de busca/filtro será envolto por um container simples.
+    
+    st.markdown("### 🔎 Biblioteca de Frases")
+    
+    with st.container(): # Novo container para o bloco de busca/filtro
         c_search, c_filter = st.columns([5, 2]) 
         
         with c_search:
-            termo = st.text_input("Biblioteca de Frases", 
-                                placeholder="🔎 Busque por empresa, motivo ou conteúdo...", 
-                                label_visibility="visible", key="lib_search_term")
+            termo = st.text_input("Busca:", 
+                                  placeholder="Busque por empresa, motivo ou conteúdo...", 
+                                  label_visibility="collapsed", key="lib_search_term")
         
         with c_filter:
-            st.markdown("<p style='font-size: 0.8rem; margin-bottom: -5px; color: #475569;'>Filtrar Empresa</p>", unsafe_allow_html=True)
+            # st.markdown("<p style='font-size: 0.8rem; margin-bottom: -5px; color: #475569;'>Filtrar Empresa</p>", unsafe_allow_html=True) # Removido para simplificar
             filtro_empresa = st.selectbox("Filtrar Empresa", 
-                                            ["Todas"] + sorted(list(set(d['empresa'] for d in dados_totais))), 
-                                            label_visibility="collapsed", key="lib_filter_empresa")
+                                          ["Todas"] + sorted(list(set(d['empresa'] for d in dados_totais))), 
+                                          label_visibility="collapsed", key="lib_filter_empresa")
     
     filtrados = dados_totais
     if filtro_empresa != "Todas": filtrados = [f for f in filtrados if f['empresa'] == filtro_empresa]
     if termo: 
         termo_limpo = limpar_coluna(termo)
         filtrados = [f for f in filtrados if termo_limpo in limpar_coluna(f['empresa']) or \
-                                              termo_limpo in limpar_coluna(f['motivo']) or \
-                                              termo_limpo in limpar_coluna(f['conteudo'])]
+                                             termo_limpo in limpar_coluna(f['motivo']) or \
+                                             termo_limpo in limpar_coluna(f['conteudo'])]
 
-    st.markdown(f"<div style='margin-top: 10px; margin-bottom:10px; color:#64748B;'>Encontrados <b>{len(filtrados)}</b> resultados</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='margin-top: 10px; margin-bottom:15px; color:#64748B;'>Encontrados <b>{len(filtrados)}</b> resultados</div>", unsafe_allow_html=True)
     
     if not filtrados: st.info("Nenhum resultado encontrado.")
     else:
         for i in range(0, len(filtrados), 2):
-            row_c1, row_c2 = st.columns(2)
+            # Usando uma div HTML com a classe content-card para aplicar o estilo de card via CSS customizado
+            row_c1 = st.empty()
+            row_c2 = st.empty()
             
+            # Novo layout de colunas usando a classe .content-card
+            cols = st.columns(2)
+            row_c1 = cols[0]
+            row_c2 = cols[1]
+
             def render_frase_card(container, frase):
                 author = frase.get('revisado_por', 'Sistema')
                 date = frase.get('data_revisao', '')
                 with container:
-                    st.markdown(f"""
-                    <div class="frase-header">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                            <h4 style="margin:0; color:#1E3A8A; font-weight:700;">{frase['empresa']}</h4>
-                            <span class="badge badge-blue">{frase['documento']}</span>
+                    # Envolve o conteúdo do card para aplicar o estilo.
+                    # É um 'st.container' para ter um bloco vertical, que será estilizado pelo CSS
+                    with st.container() as card_container:
+                        card_container.markdown(f'<div class="content-card">', unsafe_allow_html=True) # Abre a div para o estilo de card
+                        
+                        st.markdown(f"""
+                        <div class="frase-header">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:5px;">
+                                <h4 style="margin:0;">{frase['empresa']}</h4>
+                                <span class="badge badge-blue">{frase['documento']}</span>
+                            </div>
+                            <div style="color:#64748B; font-size:0.9rem; margin-bottom:8px;">{frase['motivo']}</div>
+                            <div class="card-meta"><span>👤 {author}</span><span>📅 {date}</span></div>
                         </div>
-                        <div style="color:#64748B; font-size:0.9rem; margin-bottom:8px;">{frase['motivo']}</div>
-                        <div class="card-meta"><span>👤 {author}</span><span>📅 {date}</span></div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    st.code(frase['conteudo'], language="text")
-                    st.write("") 
-
+                        """, unsafe_allow_html=True)
+                        st.code(frase['conteudo'], language="text")
+                        
+                        card_container.markdown('</div>', unsafe_allow_html=True) # Fecha a div
+            
             render_frase_card(row_c1, filtrados[i])
             if i + 1 < len(filtrados):
                 render_frase_card(row_c2, filtrados[i+1])
-                
+            
 def render_adicionar(dados_totais, user):
-    st.markdown("### Adicionar Novas Frases")
+    st.markdown("### ➕ Adicionar Novas Frases")
     tab_man, tab_imp = st.tabs(["✍️ Manual", "📥 Importação em Massa"])
     
+    # ... (Restante da função render_adicionar mantida)
+    # ...
+    # ...
     with tab_man:
         with st.container(border=True):
             st.subheader("Registro Manual")
@@ -247,7 +330,7 @@ def render_adicionar(dados_totais, user):
                     if ne and nd and nm and nc:
                         ne_p, nd_p, nm_p = padronizar(ne), padronizar(nd), padronizar(nm); nc_p = padronizar(nc, "frase")
                         if [d for d in dados_totais if d.get('conteudo') == nc_p]: 
-                             st.error("Frase idêntica já existe.")
+                            st.error("Frase idêntica já existe.")
                         else:
                             supabase.table("frases").insert({
                                 "empresa":ne_p, "documento":nd_p, "motivo":nm_p, "conteudo":nc_p, 
@@ -306,7 +389,10 @@ def render_adicionar(dados_totais, user):
             except Exception as e: st.error(f"Erro ao processar arquivo: {e}")
 
 def render_manutencao(dados_totais, user):
-    st.markdown("### Gerenciar e Editar Registros")
+    st.markdown("### ✏️ Gerenciar e Editar Registros")
+    # ... (Restante da função render_manutencao mantida)
+    # ...
+    # ...
     q = st.text_input("Buscar por Frase, Empresa ou Motivo para editar...", placeholder="Digite para filtrar a lista...", key="maint_search")
     
     filtrados_manut = [f for f in dados_totais if q.lower() in str(f).lower()] if q else dados_totais
@@ -366,7 +452,10 @@ def render_manutencao(dados_totais, user):
                     st.rerun()
 
 def render_admin(user, dados_totais):
-    st.markdown("### Painel Administrativo 👑")
+    st.markdown("### 👑 Painel Administrativo")
+    # ... (Restante da função render_admin mantida)
+    # ...
+    # ...
     tab_users, tab_logs = st.tabs(["👥 Gerenciar Usuários", "🔒 Logs & Backup"])
     
     with tab_users:
@@ -423,9 +512,9 @@ def render_admin(user, dados_totais):
 
         st.write("---")
         st.download_button("📥 Fazer Backup Completo (CSV)", 
-                           data=pd.DataFrame(dados_totais).to_csv(index=False).encode('utf-8'), 
-                           file_name="backup_frases.csv", 
-                           mime="text/csv")
+                            data=pd.DataFrame(dados_totais).to_csv(index=False).encode('utf-8'), 
+                            file_name="backup_frases.csv", 
+                            mime="text/csv")
         st.write("---")
         
         with st.expander("🚨 Zona de Perigo (Apagar Tudo)", expanded=False):
@@ -440,6 +529,7 @@ def render_admin(user, dados_totais):
                         time.sleep(2); st.cache_data.clear(); st.rerun()
                     except Exception as e: st.error(f"Erro ao apagar: {e}")
                 else: st.error("Texto de confirmação incorreto.")
+
 
 # ==============================================================================
 # 6. FLUXO PRINCIPAL
