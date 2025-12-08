@@ -44,7 +44,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. FUNÇÕES AUXILIARES
+# 3. CONEXÃO E FUNÇÕES
 # ==============================================================================
 try:
     url_db = st.secrets["SUPABASE_URL"]
@@ -72,35 +72,40 @@ def padronizar(texto, tipo="titulo"): return (str(texto).strip().title() if tipo
 def limpar_coluna(col): return ''.join(c for c in unicodedata.normalize('NFD', str(col).lower().strip()) if unicodedata.category(c) != 'Mn')
 
 # ==============================================================================
-# 4. GERENCIAMENTO DE SESSÃO E COOKIES (LÓGICA BLINDADA)
+# 4. SISTEMA DE AUTENTICAÇÃO BLINDADO
 # ==============================================================================
 
-# 1. Instancia com KEY FIXA (importante para não reiniciar o componente)
-cookie_manager = stx.CookieManager(key="auth_cookie_manager")
+# 1. Instancia o Gerenciador
+cookie_manager = stx.CookieManager(key="main_auth")
 
-# 2. Inicializa Sessão
+# 2. Inicializa Variável de Sessão
 if "usuario_logado" not in st.session_state:
     st.session_state["usuario_logado"] = None
 
-# 3. Lógica de Recuperação Automática
-# Só tenta recuperar se NINGUÉM estiver logado
+# 3. LÓGICA DE RECUPERAÇÃO (A MÁGICA ACONTECE AQUI)
 if st.session_state["usuario_logado"] is None:
-    # Atraso estratégico aumentado para garantir conexão com o browser
-    time.sleep(0.5) 
+    # Tenta ler todos os cookies
+    cookies = cookie_manager.get_all()
     
-    # Tenta ler o cookie
-    cookie_user = cookie_manager.get('gupy_user_token')
+    # Se a lista de cookies vier vazia ou None, esperamos um pouco e tentamos de novo
+    # Isso resolve o problema do F5 (Race Condition)
+    if not cookies:
+        with st.spinner("Conectando..."): # Mostra visualmente que está carregando
+            time.sleep(1) 
+            cookies = cookie_manager.get_all()
     
-    if cookie_user:
-        # Se achou o cookie, valida no banco
-        user_db = recuperar_usuario_cookie(cookie_user)
+    # Tenta pegar o nosso token específico
+    token = cookies.get("gupy_user_token") if cookies else None
+    
+    if token:
+        user_db = recuperar_usuario_cookie(token)
         if user_db:
             st.session_state["usuario_logado"] = user_db
-            # Rerun imediato para "pintar" a tela correta sem mostrar o login
-            st.rerun()
+            # Se achou o usuário, não faz rerun imediato aqui para evitar loops, 
+            # deixa o fluxo seguir e renderizar a área logada
 
 # ==============================================================================
-# 5. TELAS
+# 5. RENDERIZAÇÃO DAS TELAS
 # ==============================================================================
 
 # --- TELA DE LOGIN ---
@@ -120,12 +125,11 @@ if st.session_state["usuario_logado"] is None:
                 if st.form_submit_button("Acessar Plataforma", use_container_width=True, type="primary"):
                     user = verificar_login(u, s)
                     if user:
-                        # Login Sucesso: Define Sessão E Define Cookie
+                        # Login OK: Define Sessão e Grava Cookie
                         st.session_state["usuario_logado"] = user
                         expires = datetime.now() + timedelta(days=7)
-                        cookie_manager.set('gupy_user_token', u, expires_at=expires)
-                        # Pequeno sleep para garantir que o cookie foi gravado antes do reload
-                        time.sleep(0.5)
+                        cookie_manager.set("gupy_user_token", u, expires_at=expires)
+                        time.sleep(0.5) # Dá tempo de gravar
                         st.rerun()
                     else: st.toast("🚫 Credenciais inválidas.", icon="error")
 
@@ -151,9 +155,9 @@ else:
             c_u_text, c_u_btn = st.columns([2, 1])
             with c_u_text: st.markdown(f"<div style='text-align:right; font-size:0.85rem; color:#64748B; margin-top:5px;'>Olá, <b>{user['username']}</b></div>", unsafe_allow_html=True)
             with c_u_btn:
-                # LOGOUT COMPLETO
+                # LOGOUT: Apaga Cookie e Sessão
                 if st.button("Sair", key="btn_logout"):
-                    cookie_manager.delete('gupy_user_token')
+                    cookie_manager.delete("gupy_user_token")
                     st.session_state["usuario_logado"] = None
                     st.rerun()
     st.markdown("---") 
