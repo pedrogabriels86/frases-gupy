@@ -204,18 +204,16 @@ else:
     dados_totais = buscar_dados()
     
     # --- HEADER PROFISSIONAL (FIXO) ---
-    # Usamos HTML/CSS puro para o container fixo para garantir que ele fique no topo
     st.markdown('<div class="nav-wrapper">', unsafe_allow_html=True)
     
     # Criamos colunas DENTRO desse wrapper visual
     c_logo, c_menu, c_user = st.columns([1, 3, 1], vertical_alignment="center")
     
     with c_logo:
-         if LOGO_URL: st.image(LOGO_URL, width=90) # Logo um pouco maior
+         if LOGO_URL: st.image(LOGO_URL, width=90) 
          else: st.markdown("### Gupy")
 
     with c_menu:
-        # Opções do Menu
         opcoes_map = {"Biblioteca": "📂 Biblioteca", "Adicionar": "➕ Adicionar", "Manutenção": "✏️ Gestão"}
         if user['admin']: opcoes_map["Admin"] = "⚙️ Admin"
         
@@ -228,7 +226,7 @@ else:
         # Reverse lookup para saber qual pagina carregar
         page = [k for k, v in opcoes_map.items() if v == page_sel][0]
 
-    with c_u_user:
+    with c_user:  # CORREÇÃO AQUI (era c_u_user)
         c_name, c_btn = st.columns([2, 1], vertical_alignment="center")
         with c_name:
             st.markdown(f"<div style='text-align:right; font-size:0.85rem; color:#475569; line-height:1.2;'>Olá, <br><b>{user['username']}</b></div>", unsafe_allow_html=True)
