@@ -11,75 +11,75 @@ st.set_page_config(page_title="Gupy Frases", page_icon="💙", layout="wide")
 # --- CSS CORPORATIVO GUPY ---
 st.markdown("""
 <style>
-    /* IMPORTAR FONTE INTER (Padrão de Startups/Gupy) */
+    /* IMPORTAR FONTE INTER */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
     html, body, [class*="css"] {
         font-family: 'Inter', sans-serif;
-        color: #262626; /* Cinza escuro suave para leitura */
+        color: #262626;
     }
 
-    /* FUNDO GERAL (Cinza bem claro, padrão SaaS) */
+    /* FUNDO GERAL */
     .stApp {
         background-color: #F5F7FA;
     }
 
-    /* SIDEBAR (Azul Escuro Gupy "Midnight") */
+    /* SIDEBAR (Azul Escuro Gupy) */
     section[data-testid="stSidebar"] {
-        background-color: #00122F; /* Cor oficial escura */
+        background-color: #00122F;
     }
     section[data-testid="stSidebar"] h1, 
     section[data-testid="stSidebar"] h2, 
     section[data-testid="stSidebar"] h3, 
     section[data-testid="stSidebar"] label, 
     section[data-testid="stSidebar"] span,
-    section[data-testid="stSidebar"] div {
-        color: #FFFFFF !important; /* Texto branco no sidebar */
+    section[data-testid="stSidebar"] div,
+    section[data-testid="stSidebar"] p {
+        color: #FFFFFF !important;
     }
     
-    /* LOGO / TÍTULO NO SIDEBAR */
+    /* LOGO NO SIDEBAR */
     .sidebar-logo {
         font-size: 1.8rem;
         font-weight: 700;
-        color: #2175D9 !important; /* Azul Gupy vibrante */
+        color: #2175D9 !important;
         margin-bottom: 20px;
         display: flex;
         align-items: center;
         gap: 10px;
     }
 
-    /* BOTÕES PRIMÁRIOS (Azul Gupy) */
+    /* BOTÕES (Azul Gupy) */
     .stButton > button {
         background-color: #2175D9;
         color: white;
         border: none;
-        border-radius: 4px; /* Bordas levemente arredondadas, não redondas */
+        border-radius: 4px;
         padding: 0.5rem 1rem;
         font-weight: 600;
         font-size: 0.9rem;
-        box-shadow: none;
         transition: background-color 0.2s;
     }
     .stButton > button:hover {
-        background-color: #175BB5; /* Azul um pouco mais escuro no hover */
+        background-color: #175BB5;
         color: white;
     }
-    /* Botão Secundário / Danger */
+    /* Botão Danger */
     button[kind="primary"] {
         background-color: #D93025 !important;
         border: 1px solid #D93025 !important;
     }
 
-    /* CARTÕES DE CONTEÚDO (Clean & Flat) */
+    /* CARTÕES (Clean & Flat) */
     div[data-testid="stVerticalBlock"] > div[style*="border"] {
         background-color: #FFFFFF;
         border: 1px solid #E1E4E8;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* Sombra muito sutil */
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         padding: 24px !important;
     }
 
-    /* INPUTS (Campos de texto profissionais) */
+    /* INPUTS */
     .stTextInput > div > div > input, 
     .stTextArea > div > div > textarea, 
     .stSelectbox > div > div > div {
@@ -93,12 +93,12 @@ st.markdown("""
         box-shadow: 0 0 0 1px #2175D9;
     }
 
-    /* BADGES (Etiquetas estilo Gupy) */
+    /* BADGES */
     .badge-gupy {
         display: inline-flex;
         align-items: center;
         padding: 4px 10px;
-        border-radius: 100px; /* Pill shape */
+        border-radius: 100px;
         font-size: 0.75rem;
         font-weight: 600;
         margin-right: 6px;
@@ -106,33 +106,15 @@ st.markdown("""
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
-    /* Cores das badges */
     .bg-blue { background-color: #E3F2FD; color: #1565C0; border: 1px solid #BBDEFB; }
     .bg-purple { background-color: #F3E5F5; color: #7B1FA2; border: 1px solid #E1BEE7; }
     .bg-green { background-color: #E8F5E9; color: #2E7D32; border: 1px solid #C8E6C9; }
 
-    /* MENU DE NAVEGAÇÃO (Radio) */
-    .stRadio > div {
-        background-color: transparent;
-    }
-    /* Ajuste para o texto do radio no sidebar ficar branco */
-    .stRadio label {
-        color: white !important;
-    }
+    /* MENU RADIO */
+    .stRadio > div { background-color: transparent; }
+    .stRadio label { color: white !important; }
 
-    /* Títulos da Página */
-    h1 {
-        color: #111827;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-        font-size: 2rem;
-    }
-    h2, h3 {
-        color: #374151;
-        font-weight: 600;
-    }
-    
-    /* Code Block (Área da frase) */
+    /* CODE BLOCK */
     .stCode {
         background-color: #F9FAFB !important;
         border: 1px solid #F3F4F6;
@@ -183,7 +165,7 @@ def padronizar_texto(texto, tipo="titulo"):
 if "usuario_logado" not in st.session_state:
     st.session_state["usuario_logado"] = None
 
-# TELA DE LOGIN (Estilo Portal Corporativo)
+# TELA DE LOGIN
 if st.session_state["usuario_logado"] is None:
     c1, c2, c3 = st.columns([1, 1.2, 1])
     with c2:
@@ -191,7 +173,6 @@ if st.session_state["usuario_logado"] is None:
         st.write("")
         st.write("")
         with st.container(border=True):
-            # Logo "Fake" da Gupy usando texto estilizado
             st.markdown("""
                 <div style="text-align: center; margin-bottom: 20px;">
                     <span style="font-size: 40px; font-weight: 800; color: #2175D9; letter-spacing: -1px;">gupy</span>
@@ -209,15 +190,14 @@ if st.session_state["usuario_logado"] is None:
                         st.session_state["usuario_logado"] = user
                         st.rerun()
                     else: st.error("Acesso negado.")
-            st.markdown("<div style='text-align:center; color:#888; font-size:12px; margin-top:10px;'>Protected by Gupy Enterprise Security</div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align:center; color:#888; font-size:12px; margin-top:10px;'>Ambiente Seguro • Gupy Corporate</div>", unsafe_allow_html=True)
 
 # SISTEMA PRINCIPAL
 else:
     user = st.session_state["usuario_logado"]
     
-    # 1. SIDEBAR AZUL ESCURO
+    # 1. SIDEBAR
     with st.sidebar:
-        # Logo no topo do sidebar
         st.markdown("""
             <div class="sidebar-logo">
                <span style="color:#fff;">gupy</span><span style="color:#2175D9;">.</span>
@@ -231,7 +211,6 @@ else:
         
         st.divider()
         
-        # Menu
         opcoes = {
             "Biblioteca": "library",
             "Nova Frase": "add",
@@ -261,9 +240,7 @@ else:
                     user['trocar_senha']=False; st.session_state["usuario_logado"]=user; st.rerun()
                 else: st.error("Erro.")
     else:
-        # 2. CONTEÚDO PRINCIPAL (Fundo Cinza Claro)
-        
-        # --- BIBLIOTECA (Clean Grid) ---
+        # --- BIBLIOTECA ---
         if page == "library":
             c_title, c_search = st.columns([1, 2])
             with c_title:
@@ -275,7 +252,6 @@ else:
             dados = buscar_dados()
             filtrados = [f for f in dados if termo.lower() in str(f).lower()] if termo else dados
             
-            # Filtros em linha (Barra de ferramentas)
             with st.container(border=True):
                 cf1, cf2, cf3 = st.columns([1,1,2])
                 emps = sorted(list(set([f['empresa'] for f in filtrados])))
@@ -287,16 +263,13 @@ else:
                 if sel_emp != "Todas": filtrados = [f for f in filtrados if f['empresa'] == sel_emp]
                 if sel_doc != "Todos": filtrados = [f for f in filtrados if f['documento'] == sel_doc]
                 
-                cf3.markdown(f"<div style='text-align:right; padding-top: 35px; color:#666;'>Showing <b>{len(filtrados)}</b> results</div>", unsafe_allow_html=True)
+                cf3.markdown(f"<div style='text-align:right; padding-top: 35px; color:#666;'>Mostrando <b>{len(filtrados)}</b> resultados</div>", unsafe_allow_html=True)
 
             st.write("")
-            
-            # Grid de Cards
             grid = st.columns(2)
             for i, f in enumerate(filtrados):
                 with grid[i % 2]:
                     with st.container(border=True):
-                        # Cabeçalho do Card
                         st.markdown(f"""
                         <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
                             <div>
@@ -305,14 +278,9 @@ else:
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
-                        
-                        # Motivo destacado
                         st.markdown(f"**{f['motivo']}**")
-                        
-                        # Conteúdo Clean
                         st.code(f['conteudo'], language="text")
                         
-                        # Footer Auditoria
                         if f.get('revisado_por'):
                             try:
                                 dt = datetime.strptime(f['data_revisao'], '%Y-%m-%d').strftime('%d/%m/%Y')
@@ -344,7 +312,7 @@ else:
                                     "empresa":e,"documento":d,"motivo":m,"conteudo":c,
                                     "revisado_por": user['username'], "data_revisao": datetime.now().strftime('%Y-%m-%d')
                                 }).execute()
-                                registrar_log(user['username'], "Create", f"{e}-{m}")
+                                registrar_log(user['username'], "Criar Frase", f"{e}-{m}")
                                 st.success("Salvo com sucesso!"); time.sleep(1); st.rerun()
                             else: st.error("Duplicado.")
                         else: st.warning("Preencha o texto.")
@@ -356,22 +324,18 @@ else:
                     try:
                         df = pd.read_csv(upl) if upl.name.endswith('.csv') else pd.read_excel(upl)
                         df.columns = [x.lower().strip() for x in df.columns]
-                        # ... lógica de importação mantida ...
                         novos = []
                         existentes = set([str(f['conteudo']).strip() for f in buscar_dados()])
                         for _, r in df.iterrows():
-                            # Padroniza antes
                             if 'empresa' in df.columns: r['empresa'] = padronizar_texto(r['empresa'])
                             if 'conteudo' in df.columns: r['conteudo'] = padronizar_texto(r['conteudo'], 'frase')
-                            
                             if str(r['conteudo']).strip() not in existentes:
                                 item = {k: r[k] for k in ['empresa','documento','motivo','conteudo'] if k in df.columns}
-                                item['revisado_por'] = user['username']
-                                item['data_revisao'] = datetime.now().strftime('%Y-%m-%d')
+                                item['revisado_por'] = user['username']; item['data_revisao'] = datetime.now().strftime('%Y-%m-%d')
                                 novos.append(item)
                         if novos:
                             supabase.table("frases").insert(novos).execute()
-                            registrar_log(user['username'], "Import", str(len(novos)))
+                            registrar_log(user['username'], "Importar", str(len(novos)))
                             st.success(f"{len(novos)} importados!"); time.sleep(2); st.rerun()
                     except Exception as e: st.error(str(e))
 
@@ -400,50 +364,90 @@ else:
                                     "motivo":padronizar_texto(nm),"conteudo":padronizar_texto(nc,"frase"),
                                     "revisado_por":user['username'],"data_revisao":datetime.now().strftime('%Y-%m-%d')
                                 }).eq("id",obj['id']).execute()
-                                registrar_log(user['username'], "Update", str(obj['id']))
+                                registrar_log(user['username'], "Editar Frase", str(obj['id']))
                                 st.success("Feito!"); time.sleep(1); st.rerun()
                             
                             st.write("")
                             if st.button("🗑️ Remover", type="primary", use_container_width=True):
                                 supabase.table("frases").delete().eq("id", obj['id']).execute()
-                                registrar_log(user['username'], "Delete", str(obj['id']))
+                                registrar_log(user['username'], "Excluir Frase", str(obj['id']))
                                 st.rerun()
 
-        # --- ADMIN ---
+        # --- ADMIN (TRADUZIDO E COMPLETO) ---
         elif page == "admin":
-            st.title("Admin Console")
-            t1, t2, t3 = st.tabs(["Usuários", "Logs", "Danger Zone"])
+            st.title("Painel Administrativo")
+            
+            # Abas em Português
+            t1, t2, t3 = st.tabs(["👥 Gerenciar Usuários", "📜 Logs e Backup", "⚠️ Zona de Perigo"])
+            
             with t1:
                 st.subheader("Controle de Acesso")
-                with st.form("new_u"):
+                # Formulário de criação
+                with st.form("novo_usuario"):
                     c1, c2, c3 = st.columns(3)
-                    nu = c1.text_input("Nome"); ns = c2.text_input("Senha"); na = c3.checkbox("Admin Access")
+                    nu = c1.text_input("Nome do Usuário")
+                    ns = c2.text_input("Senha Inicial")
+                    na = c3.checkbox("É Administrador?")
                     if st.form_submit_button("Criar Usuário"):
                         supabase.table("usuarios").insert({"username":nu,"senha":ns,"admin":na,"trocar_senha":True}).execute()
-                        registrar_log(user['username'], "New User", nu); st.rerun()
+                        registrar_log(user['username'], "Criar Usuário", nu)
+                        st.success("Usuário criado!"); time.sleep(1); st.rerun()
                 
                 st.write("---")
+                st.subheader("Usuários Ativos")
                 users = buscar_usuarios()
                 for u in users:
                     with st.container(border=True):
                         c_a, c_b, c_c = st.columns([2,1,1])
                         c_a.markdown(f"**{u['username']}** <span style='color:#999; font-size:12px;'>{'ADMIN' if u['admin'] else 'USER'}</span>", unsafe_allow_html=True)
-                        if c_b.button("Reset Pass", key=f"r{u['id']}"):
-                            supabase.table("usuarios").update({"trocar_senha":True}).eq("id", u['id']).execute(); st.toast("Resetado.")
+                        if c_b.button("Resetar Senha", key=f"r{u['id']}"):
+                            supabase.table("usuarios").update({"trocar_senha":True}).eq("id", u['id']).execute()
+                            st.toast("Usuário terá que trocar a senha no próximo login.")
                         if u['username'] != user['username']:
                             if c_c.button("Excluir", key=f"d{u['id']}", type="primary"):
-                                supabase.table("usuarios").delete().eq("id", u['id']).execute(); st.rerun()
+                                supabase.table("usuarios").delete().eq("id", u['id']).execute()
+                                registrar_log(user['username'], "Excluir Usuário", u['username'])
+                                st.rerun()
 
             with t2:
+                st.subheader("Auditoria do Sistema")
                 logs = supabase.table("logs").select("*").order("data_hora", desc=True).limit(50).execute().data
                 if logs: st.dataframe(pd.DataFrame(logs)[['data_hora','usuario','acao','detalhe']], use_container_width=True)
                 
+                st.write("---")
+                st.subheader("Backup de Dados")
+                st.write("Baixe todos os dados das frases em formato CSV.")
                 all_data = buscar_dados()
                 if all_data:
-                    st.download_button("Baixar CSV Completo", pd.DataFrame(all_data).to_csv(index=False).encode('utf-8'), "gupy_backup.csv", "text/csv")
+                    csv = pd.DataFrame(all_data).to_csv(index=False).encode('utf-8')
+                    if st.download_button("📥 Baixar CSV Completo", csv, "backup_gupy.csv", "text/csv"):
+                        registrar_log(user['username'], "Backup Realizado", "Download CSV")
 
             with t3:
-                st.error("Área de Risco")
-                if st.button("LIMPAR TUDO (FRASES)", type="primary"):
-                    supabase.table("frases").delete().neq("id", 0).execute()
-                    registrar_log(user['username'], "WIPE", "ALL FRASES"); st.rerun()
+                st.error("Área de Risco: Ações Irreversíveis")
+                
+                col_danger1, col_danger2 = st.columns(2)
+                
+                with col_danger1:
+                    with st.container(border=True):
+                        st.subheader("🔥 Apagar Todas as Frases")
+                        check = st.text_input("Digite 'QUERO APAGAR TUDO' para confirmar:", key="del_frases")
+                        if st.button("EXCLUIR TUDO (FRASES)", type="primary", use_container_width=True):
+                            if check == "QUERO APAGAR TUDO":
+                                supabase.table("frases").delete().neq("id", 0).execute()
+                                registrar_log(user['username'], "RESET TOTAL", "Apagou todas as frases")
+                                st.toast("Banco de frases limpo!"); time.sleep(2); st.rerun()
+                            else:
+                                st.error("Frase de confirmação incorreta.")
+
+                with col_danger2:
+                     with st.container(border=True):
+                        st.subheader("💀 Apagar Usuários")
+                        check2 = st.text_input("Digite 'RESETAR USUARIOS' para confirmar:", key="del_users")
+                        if st.button("EXCLUIR TUDO (USUÁRIOS)", type="primary", use_container_width=True):
+                            if check2 == "RESETAR USUARIOS":
+                                supabase.table("usuarios").delete().neq("username", user['username']).execute()
+                                registrar_log(user['username'], "RESET USERS", "Apagou todos os usuários")
+                                st.toast("Usuários resetados!"); time.sleep(2); st.rerun()
+                            else:
+                                st.error("Frase de confirmação incorreta.")
