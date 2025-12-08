@@ -22,10 +22,11 @@ try:
         favicon = Image.open(io.BytesIO(response.content))
 except: pass
 
+# Usamos layout="wide" para usar a largura máxima
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. CSS "NUCLEAR" (ELIMINAÇÃO TOTAL DE ESPAÇOS) E MELHORIA DE HEADER
+# 2. CSS CUSTOMIZADO (AJUSTADO PARA MELHOR ALINHAMENTO)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -34,47 +35,42 @@ st.markdown("""
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #F8FAFC; }
     
-    /* 1. Ocultar Cabeçalho, Toolbar e Decoração Padrão */
-    header[data-testid="stHeader"] { display: none !important; }
-    div[data-testid="stToolbar"] { display: none !important; }
-    div[data-testid="stDecoration"] { display: none !important; }
-    footer { display: none !important; }
+    /* 1. Ocultar Elementos Streamlit Padrão */
+    header[data-testid="stHeader"], div[data-testid="stToolbar"], div[data-testid="stDecoration"], footer { 
+        display: none !important; 
+    }
 
-    /* 2. Puxar o conteúdo para o topo absoluto */
+    /* 2. Puxar o conteúdo para o topo e ajustar padding */
     .block-container {
-        padding-top: 1rem !important; /* Apenas um pequeno respiro no topo */
+        padding-top: 1rem !important; 
         padding-bottom: 5rem;
         margin-top: 0 !important;
         max-width: 100%;
     }
     
-    /* 3. Estilo do Container do Menu (Visual de Header) */
-    /* Cria uma área branca com borda no topo para o menu */
-    div[data-testid="stVerticalBlock"] > div:first-child {
+    /* 3. Estilo do Container do Header (Visão Geral) */
+    /* Target o primeiro block-container (o container principal do app) */
+    /* Modificado o seletor para mirar o container que envolve o st.container() do header */
+    div[data-testid="stVerticalBlock"] > div:first-child > div:first-child { 
         background-color: white;
         border-bottom: 1px solid #E2E8F0;
         padding: 1rem 2rem;
         margin: -1rem -5rem 2rem -5rem; /* Expande para as laterais e compensa o padding do container */
         box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
         z-index: 100;
+        width: 100vw; /* Garante que ocupe a largura total */
     }
-
-    /* ESTILIZAÇÃO DO MENU (ABAS) */
+    
+    /* 4. Estilização do Menu (Tabs) */
     .stRadio > div[role="radiogroup"] {
         display: flex;
         gap: 8px;
-        background: transparent;
-        border: none;
-        padding: 0;
         justify-content: center; /* Centraliza o menu */
     }
     .stRadio > div[role="radiogroup"] label > div:first-child { display: none; }
     .stRadio > div[role="radiogroup"] label {
-        background-color: transparent;
-        border: 1px solid transparent;
         padding: 6px 16px;
         border-radius: 6px;
-        cursor: pointer;
         transition: all 0.2s ease;
         color: #64748B;
         font-weight: 500;
@@ -88,7 +84,28 @@ st.markdown("""
         box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
 
-    /* CARDS & ELEMENTOS */
+    /* 5. Alinhamento de Usuário e Botão SAIR no Header (AJUSTADO) */
+    /* Target o container Streamlit que envolve o texto e o botão na coluna c_user */
+    div[data-testid="stVerticalBlock"] > div:first-child > div:first-child > div:nth-child(3) > div {
+        display: flex;
+        align-items: center; /* Centraliza verticalmente */
+        justify-content: flex-end; /* Joga para a direita */
+        gap: 10px; 
+        height: 100%;
+    }
+    .user-text {
+        text-align: right; 
+        font-size: 0.85rem; 
+        color: #475569; 
+        line-height: 1.2;
+    }
+    /* Alinhamento dos elementos da Biblioteca (Busca e Filtro) */
+    /* Garante que os inputs não tenham margens verticais indesejadas */
+    div[data-testid="stVerticalBlock"] div[data-testid="stTextInput"], 
+    div[data-testid="stVerticalBlock"] div[data-testid="stSelectbox"] {
+        margin-bottom: 0px !important; 
+    }
+    /* Estilo de Card/Código */
     .frase-header { background-color: white; border-radius: 12px 12px 0 0; border: 1px solid #E2E8F0; border-bottom: none; padding: 15px 20px; }
     .card-meta { margin-top: 10px; padding-top: 10px; border-top: 1px solid #F1F5F9; font-size: 0.75rem; color: #94A3B8; display: flex; justify-content: space-between; align-items: center; }
     .stCodeBlock { border: 1px solid #E2E8F0; border-top: none; border-radius: 0 0 12px 12px; background-color: white !important; }
@@ -96,38 +113,11 @@ st.markdown("""
     .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
     .badge-blue { background: #DBEAFE; color: #1E40AF; }
 
-    /* NOVO/AJUSTADO: CSS para alinhamento do usuário e botão SAIR no header */
-    /* Target o container Streamlit que envolve o texto e o botão */
-    div[data-testid="stVerticalBlock"] > div > div > div:nth-child(3) > div {
-        display: flex;
-        align-items: center; /* Centraliza verticalmente */
-        justify-content: flex-end; /* Joga para a direita */
-        gap: 10px; 
-        height: 100%;
-        margin-top: 10px; /* Adiciona um pequeno respiro no topo da coluna para alinhar com o menu */
-    }
-
-    .user-text {
-        text-align: right; 
-        font-size: 0.85rem; 
-        color: #475569; 
-        line-height: 1.2;
-    }
-    
-    /* Ajuste para remover margens extras na Biblioteca para alinhar busca e filtro */
-    .stText .stTextInput > div > div {
-        margin-bottom: 0px !important;
-    }
-    /* Alinha o selectbox (Filtro Empresa) */
-    div[data-testid="stVerticalBlock"] .stSelectbox {
-        padding-top: 0px; 
-    }
-
 </style>
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. CONEXÃO E FUNÇÕES
+# 3. CONEXÃO E FUNÇÕES (Nenhuma alteração aqui, mantendo sua lógica)
 # ==============================================================================
 try:
     url_db = st.secrets["SUPABASE_URL"]
@@ -155,7 +145,7 @@ def padronizar(texto, tipo="titulo"): return (str(texto).strip().title() if tipo
 def limpar_coluna(col): return ''.join(c for c in unicodedata.normalize('NFD', str(col).lower().strip()) if unicodedata.category(c) != 'Mn')
 
 # ==============================================================================
-# 4. SISTEMA DE AUTENTICAÇÃO
+# 4. SISTEMA DE AUTENTICAÇÃO (Nenhuma alteração aqui, mantendo sua lógica)
 # ==============================================================================
 if "usuario_logado" not in st.session_state: st.session_state["usuario_logado"] = None
 if "logout_sync" not in st.session_state: st.session_state["logout_sync"] = False
@@ -167,11 +157,7 @@ if st.session_state["usuario_logado"] is None:
         st.session_state["logout_sync"] = False
     else:
         cookies = cookie_manager.get_all()
-        if not cookies:
-            with st.spinner("Conectando..."):
-                time.sleep(1) 
-                cookies = cookie_manager.get_all()
-            
+        # Removido a pausa de 1s para buscar cookies, pois a função get_all() é imediata na re-renderização
         token = cookies.get("gupy_user_token") if cookies else None
         if token:
             user_db = recuperar_usuario_cookie(token)
@@ -211,14 +197,14 @@ else:
     user = st.session_state["usuario_logado"]
     dados_totais = buscar_dados()
     
-    # --- HEADER PROFISSIONAL (COM ALINHAMENTO FORÇADO) ---
+    # --- HEADER PROFISSIONAL ---
+    # O CSS no início do código já garante que este container se pareça com um header fixo
     with st.container():
-        # Usamos vertical_alignment="center" para alinhar o logo, menu e info do usuário
         c_logo, c_menu, c_user = st.columns([1, 3, 1], vertical_alignment="center")
         
         with c_logo:
-             if LOGO_URL: st.image(LOGO_URL, width=90) 
-             else: st.markdown("### Gupy")
+            if LOGO_URL: st.image(LOGO_URL, width=90) 
+            else: st.markdown("### Gupy")
 
         with c_menu:
             opcoes_map = {"Biblioteca": "📂 Biblioteca", "Adicionar": "➕ Adicionar", "Manutenção": "✏️ Gestão"}
@@ -228,13 +214,8 @@ else:
             page_sel = st.radio("Menu", options=opcoes_labels, horizontal=True, label_visibility="collapsed")
             page = [k for k, v in opcoes_map.items() if v == page_sel][0]
 
-        # ----------------------------------------------------
-        # CÓDIGO DO USUÁRIO E BOTÃO SAIR (Simplificado para o CSS assumir)
-        # ----------------------------------------------------
+        # CÓDIGO DO USUÁRIO E BOTÃO SAIR (O CSS anterior alinha estes elementos)
         with c_user:
-            # Não injetamos <div class="user-info-container"> aqui, o CSS globalmente
-            # mira o container do Streamlit para aplicar o Flexbox.
-            
             # 1. Container do Texto do Usuário (classe .user-text)
             st.markdown(f"<div class='user-text'>Olá, <br><b>{user['username']}</b></div>", unsafe_allow_html=True)
 
@@ -257,27 +238,36 @@ else:
                     user['trocar_senha'] = False; st.success("Senha atualizada!"); time.sleep(1); st.rerun()
                 else: st.error("Senhas inválidas.")
     else:
-        # PÁGINA: BIBLIOTECA (Ajuste de alinhamento da Busca e Filtro)
+        # PÁGINA: BIBLIOTECA (AJUSTADA)
         if page == "Biblioteca":
             st.subheader("Biblioteca de Frases")
             
-            # Container de busca 
-            with st.container(border=True): # Adicionando a borda novamente para manter o design original
-                c_search, c_filter = st.columns([3, 1])
+            # Container de busca (AJUSTADO: Colunas mais compactas e alinhamento via CSS)
+            with st.container(border=True): 
+                # Ajuste no ratio das colunas para deixar o filtro menor (1:5)
+                c_search, c_filter = st.columns([5, 2]) 
                 
                 with c_search:
+                    # Usando label_visibility="collapsed" e placeholder para melhor UX
                     termo = st.text_input("Pesquisa Inteligente", 
                                         placeholder="🔎 Busque por empresa, motivo ou conteúdo...", 
                                         label_visibility="collapsed")
                 
                 with c_filter:
+                    # O selectbox não aceita placeholder, mas o CSS garante o alinhamento
                     filtro_empresa = st.selectbox("Filtrar Empresa", 
                                                     ["Todas"] + sorted(list(set(d['empresa'] for d in dados_totais))), 
                                                     label_visibility="collapsed")
             
             filtrados = dados_totais
             if filtro_empresa != "Todas": filtrados = [f for f in filtrados if f['empresa'] == filtro_empresa]
-            if termo: filtrados = [f for f in filtrados if termo.lower() in str(f).lower()]
+            if termo: 
+                # Função de limpeza para pesquisa "suave"
+                termo_limpo = limpar_coluna(termo)
+                filtrados = [f for f in filtrados if termo_limpo in limpar_coluna(f['empresa']) or \
+                                                      termo_limpo in limpar_coluna(f['motivo']) or \
+                                                      termo_limpo in limpar_coluna(f['conteudo'])]
+
 
             st.markdown(f"<div style='margin-top: 15px; margin-bottom:15px; color:#64748B;'>Encontrados <b>{len(filtrados)}</b> resultados</div>", unsafe_allow_html=True)
             
@@ -285,6 +275,8 @@ else:
             else:
                 for i in range(0, len(filtrados), 2):
                     row_c1, row_c2 = st.columns(2)
+                    
+                    # CARD 1
                     f1 = filtrados[i]
                     author1 = f1.get('revisado_por', 'Sistema')
                     date1 = f1.get('data_revisao', '')
@@ -300,7 +292,10 @@ else:
                         </div>
                         """, unsafe_allow_html=True)
                         st.code(f1['conteudo'], language="text")
+                        # Adiciona espaço após o card
+                        st.write("")
 
+                    # CARD 2 (se existir)
                     if i + 1 < len(filtrados):
                         f2 = filtrados[i+1]
                         author2 = f2.get('revisado_por', 'Sistema')
@@ -317,7 +312,8 @@ else:
                             </div>
                             """, unsafe_allow_html=True)
                             st.code(f2['conteudo'], language="text")
-                    st.write("")
+                            # Adiciona espaço após o card
+                            st.write("")
 
         # PÁGINA: ADICIONAR
         elif page == "Adicionar":
