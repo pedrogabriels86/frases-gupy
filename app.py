@@ -3,6 +3,7 @@ from supabase import create_client, Client
 import pandas as pd
 import time
 from datetime import datetime
+import io
 
 # --- 1. CONFIGURAÇÃO GUPY ---
 st.set_page_config(page_title="Gupy Frases", page_icon="💙", layout="wide")
@@ -55,10 +56,7 @@ st.markdown("""
     
     /* Logo Fallback Text */
     .logo-text {
-        font-size: 2rem;
-        font-weight: 800;
-        color: #2175D9;
-        letter-spacing: -1px;
+        font-size: 2rem; font-weight: 800; color: #2175D9; letter-spacing: -1px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -90,18 +88,20 @@ def padronizar(texto, tipo="titulo"):
 # --- 4. FRONTEND ---
 if "usuario_logado" not in st.session_state: st.session_state["usuario_logado"] = None
 
-# URL DO LOGO (Link mais estável)
-LOGO_URL = "https://logodownload.org/wp-content/uploads/2020/05/gupy-logo.png"
+# ==============================================================================
+# URL DA LOGO (Atualizada)
+LOGO_URL = "https://urmwvabkikftsefztadb.supabase.co/storage/v1/object/public/imagens/logo_gupy.png.png"
+# ==============================================================================
 
 if st.session_state["usuario_logado"] is None:
     c1, c2, c3 = st.columns([1,1.2,1])
     with c2:
         st.write(""); st.write("")
         with st.container(border=True):
-            # Tenta mostrar imagem, se falhar mostra texto
-            try:
+            # Logo na tela de Login
+            if LOGO_URL:
                 st.image(LOGO_URL, width=150)
-            except:
+            else:
                 st.markdown("<h1 class='logo-text'>gupy</h1>", unsafe_allow_html=True)
                 
             st.markdown("<h3 style='text-align:left; color:#555;'>Biblioteca de Frases</h3>", unsafe_allow_html=True)
@@ -116,11 +116,12 @@ else:
     user = st.session_state["usuario_logado"]
     
     with st.sidebar:
-        try:
-            st.image(LOGO_URL, width=120)
-        except:
+        # Logo no Menu Lateral
+        if LOGO_URL:
+            st.image(LOGO_URL, width=140)
+        else:
             st.markdown("## gupy<span style='color:#2175D9'>.</span>", unsafe_allow_html=True)
-            
+        
         st.caption(f"Olá, {user['username']}")
         st.divider()
         
