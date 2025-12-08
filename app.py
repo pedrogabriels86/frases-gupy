@@ -26,13 +26,27 @@ except: pass
 # --- 1. CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Frases de Recusa - Gupy", page_icon=favicon, layout="wide")
 
-# --- CSS MODERNO (VISUAL GUPY + MENU VISÍVEL) ---
+# --- CSS MODERNO (Ocultando apenas o botão Manage/Deploy) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
     * { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #F5F7FA; }
+    
+    /* --- ESCONDER APENAS BOTÕES DE DEPLOY/MANAGE --- */
+    /* Esconde a área de ações do cabeçalho (onde fica o Deploy) */
+    [data-testid="stHeaderActionElements"] {
+        display: none !important;
+    }
+    /* Reforço para garantir que botões de deploy sumam */
+    .stDeployButton {
+        display: none !important;
+    }
+    /* Garante que o menu hambúrguer e o resto do header permaneçam visíveis */
+    header[data-testid="stHeader"] {
+         visibility: visible !important;
+    }
     
     /* SIDEBAR */
     section[data-testid="stSidebar"] { background-color: #00122F; }
@@ -138,7 +152,7 @@ else:
         st.caption(f"Olá, {user['username']}")
         st.divider()
         
-        # MENU RESTAURADO (GESTÃO UNIFICADA)
+        # MENU LATERAL (GESTÃO UNIFICADA)
         opcoes = ["📂 Frases de Recusa", "📝 Gestão de Frases", "⚙️ Gerenciador"] if user['admin'] else ["📂 Frases de Recusa", "📝 Gestão de Frases"]
         page = st.radio("Navegação", opcoes, label_visibility="collapsed")
         
