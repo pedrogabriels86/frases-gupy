@@ -25,7 +25,7 @@ except: pass
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. CSS CUSTOMIZADO (FIXAÇÃO DE ALINHAMENTO E COMPACTAÇÃO)
+# 2. CSS CUSTOMIZADO (SIMPLICIDADE E ESTABILIDADE MÁXIMA)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -34,41 +34,49 @@ st.markdown("""
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #F8FAFC; }
     
-    /* 1. Ocultar e Zerar Margens/Paddings do Streamlit Padrão */
+    /* 1. Ocultar e Zerar Elementos Padrão */
     header[data-testid="stHeader"], div[data-testid="stToolbar"], div[data-testid="stDecoration"], footer { 
         display: none !important; 
     }
     
-    /* Zera Margem do Corpo Principal: PADDING MODERADO (2.5rem) */
+    /* Zera Margem do Corpo Principal: PADDING MODERADO (2rem) */
     .block-container {
         padding-top: 0.8rem !important; 
         padding-bottom: 3rem; 
         margin-top: 0 !important;
         max-width: 100%;
-        padding-left: 2.5rem; /* Espaço moderado */
-        padding-right: 2.5rem;
+        padding-left: 2rem; 
+        padding-right: 2rem;
     }
     
-    /* Zera Margens Internas de Colunas e Blocks que causam espaços indesejados */
-    div[data-testid^="stVerticalBlock"] > div:first-child > div:nth-child(2) {
-        margin-top: 0rem !important;
-        padding-top: 0rem !important;
-    }
-    
-    /* 2. Estilo do Container do Header (Fixação do Padding) */
+    /* 2. Estilo do Container do Header (Topo Fixo - Apenas Logo e Usuário) */
     div[data-testid="stVerticalBlock"] > div:first-child > div:first-child { 
         background-color: white;
         border-bottom: 1px solid #E2E8F0;
-        padding: 0.9rem 2.5rem; /* Ajustado para 2.5rem para corresponder ao padding do block-container */
-        margin: -0.8rem -2.5rem 1.5rem -2.5rem; 
+        padding: 0.8rem 2rem; /* Ajustado para 2rem */
+        margin: -0.8rem -2rem 1.5rem -2rem; 
         box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
         z-index: 100;
         width: 100vw; 
     }
+
+    /* 3. Estilização do Menu (Tabs) - Agora no corpo da página, com sombra de card */
+    .menu-container {
+        padding: 0.5rem 0rem;
+        margin-bottom: 1.5rem;
+        border-radius: 8px;
+        background-color: white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        border: 1px solid #E2E8F0;
+    }
     
-    /* 3. Estilização do Menu (Tabs) */
-    .stRadio > div[role="radiogroup"] { display: flex; gap: 8px; justify-content: flex-start; } /* Deixa o menu se expandir a partir do logo */
+    .stRadio > div[role="radiogroup"] { 
+        display: flex; 
+        gap: 8px; 
+        justify-content: center; /* Centraliza o Menu na página */
+    } 
     
+    /* ... (Estilos de Botões e rádio mantidos) */
     .stRadio > div[role="radiogroup"] label {
         padding: 5px 15px; 
         border-radius: 6px; transition: all 0.2s ease;
@@ -81,14 +89,14 @@ st.markdown("""
     }
     .stRadio > div[role="radiogroup"] label > div:first-child { display: none; }
 
-    /* 4. Alinhamento de Usuário e Botão SAIR no Header (CRÍTICO PARA CENTRALIZAÇÃO VERTICAL) */
-    div[data-testid="stVerticalBlock"] > div:first-child > div:first-child > div:nth-child(3) > div {
+    /* 4. Alinhamento de Usuário e Botão SAIR no Header (Simplificado) */
+    div[data-testid="stVerticalBlock"] > div:first-child > div:first-child > div:nth-child(2) > div {
         display: flex; 
-        align-items: center; /* Centraliza verticalmente o texto e o botão */
+        align-items: center; 
         justify-content: flex-end; 
         gap: 8px; 
         height: 100%;
-        margin-top: 0; /* GARANTE QUE NÃO HÁ MARGEM VERTICAL INDESEJADA */
+        margin-top: 0; 
     }
     .user-text { 
         text-align: right; 
@@ -99,21 +107,14 @@ st.markdown("""
     }
     .stButton button { padding: 0.3rem 0.8rem !important; } 
     
-    /* 5. Ajustes de Conteúdo (COMPACTAÇÃO VERTICAL) */
-    h3 { margin-top: 0.5rem; margin-bottom: 0.5rem; }
-
-    /* Cards (Biblioteca): Reduzindo espaços internos do card */
-    .frase-header { background-color: white; border-radius: 12px 12px 0 0; border: 1px solid #E2E8F0; border-bottom: none; padding: 10px 15px; } 
-    .stCodeBlock { border: 1px solid #E2E8F0; border-top: none; border-radius: 0 0 12px 12px; background-color: white !important; }
-    .card-meta { margin-top: 5px; padding-top: 5px; font-size: 0.7rem; } /* Compactando meta info */
-    .stCodeBlock + div { height: 10px; } /* Reduzindo espaço entre cards */
-    .badge { padding: 1px 6px; font-size: 0.7rem; }
+    /* 5. Ajustes de Conteúdo (Compactação) */
+    .stCodeBlock { margin-bottom: 0.5rem; } /* Menos espaço entre o bloco de código e o próximo elemento */
     
 </style>
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. CONEXÃO E FUNÇÕES (Sem alterações)
+# 3. CONEXÃO E FUNÇÕES (Mantido)
 # ==============================================================================
 try:
     url_db = st.secrets["SUPABASE_URL"]
@@ -123,7 +124,7 @@ except:
     st.error("Erro de configuração: Secrets não encontrados.")
     st.stop()
 
-# Funções de DB e Utilitárias
+# Funções de DB e Utilitárias (Mantidas)
 def verificar_login(u, s):
     try: res = supabase.table("usuarios").select("*").eq("username", u).eq("senha", s).execute(); return res.data[0] if res.data else None
     except: return None
@@ -149,10 +150,10 @@ def padronizar(texto, tipo="titulo"):
     return texto.title() if tipo == "titulo" else texto[0].upper() + texto[1:]
 
 def limpar_coluna(col): 
-    return ''.join(c for c in unicodedata.normalize('NFD', str(col).lower().strip()) if unicodedata.category(c) != 'Mn')
+    return ''.join(c for c in unicodedata.normalize('NFD', str(col).lower().strip()) if unicodeda_category(c) != 'Mn')
 
 # ==============================================================================
-# 4. SISTEMA DE AUTENTICAÇÃO (Sem alterações)
+# 4. SISTEMA DE AUTENTICAÇÃO (Mantido)
 # ==============================================================================
 if "usuario_logado" not in st.session_state: st.session_state["usuario_logado"] = None
 if "logout_sync" not in st.session_state: st.session_state["logout_sync"] = False
@@ -171,13 +172,12 @@ if st.session_state["usuario_logado"] is None:
                 st.session_state["usuario_logado"] = user_db
 
 # ==============================================================================
-# 5. FUNÇÕES DE RENDERIZAÇÃO POR PÁGINA 
+# 5. FUNÇÕES DE RENDERIZAÇÃO POR PÁGINA (Mantido o corpo, foco na chamada de Layout)
 # ==============================================================================
 
 def render_biblioteca(dados_totais, user):
     """Renderiza a página Biblioteca com busca e exibição em cards."""
-    
-    # CONTAINER DE BUSCA E FILTRO 
+    # ... (Conteúdo da função render_biblioteca mantido)
     with st.container(border=True): 
         c_search, c_filter = st.columns([5, 2]) 
         
@@ -192,21 +192,16 @@ def render_biblioteca(dados_totais, user):
                                             ["Todas"] + sorted(list(set(d['empresa'] for d in dados_totais))), 
                                             label_visibility="collapsed", key="lib_filter_empresa")
     
-    # LÓGICA DE FILTRAGEM
     filtrados = dados_totais
-    if filtro_empresa != "Todas": 
-        filtrados = [f for f in filtrados if f['empresa'] == filtro_empresa]
-        
+    if filtro_empresa != "Todas": filtrados = [f for f in filtrados if f['empresa'] == filtro_empresa]
     if termo: 
         termo_limpo = limpar_coluna(termo)
         filtrados = [f for f in filtrados if termo_limpo in limpar_coluna(f['empresa']) or \
                                               termo_limpo in limpar_coluna(f['motivo']) or \
                                               termo_limpo in limpar_coluna(f['conteudo'])]
 
-
     st.markdown(f"<div style='margin-top: 10px; margin-bottom:10px; color:#64748B;'>Encontrados <b>{len(filtrados)}</b> resultados</div>", unsafe_allow_html=True)
     
-    # EXIBIÇÃO DOS CARDS EM DUAS COLUNAS 
     if not filtrados: st.info("Nenhum resultado encontrado.")
     else:
         for i in range(0, len(filtrados), 2):
@@ -216,7 +211,6 @@ def render_biblioteca(dados_totais, user):
                 author = frase.get('revisado_por', 'Sistema')
                 date = frase.get('data_revisao', '')
                 with container:
-                    # O CSS agora cuida da compactação vertical e padding
                     st.markdown(f"""
                     <div class="frase-header">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
@@ -228,15 +222,13 @@ def render_biblioteca(dados_totais, user):
                     </div>
                     """, unsafe_allow_html=True)
                     st.code(frase['conteudo'], language="text")
-                    st.write("") # Adiciona espaço que será compactado pelo CSS
-            
-            # Renderiza os cards
+                    st.write("") 
+
             render_frase_card(row_c1, filtrados[i])
             if i + 1 < len(filtrados):
                 render_frase_card(row_c2, filtrados[i+1])
                 
 def render_adicionar(dados_totais, user):
-    """Renderiza a página Adicionar."""
     st.markdown("### Adicionar Novas Frases")
     tab_man, tab_imp = st.tabs(["✍️ Manual", "📥 Importação em Massa"])
     
@@ -269,10 +261,9 @@ def render_adicionar(dados_totais, user):
                     else: st.warning("Preencha todos os campos obrigatórios.")
 
     with tab_imp:
-        st.info("Colunas obrigatórias: **Empresa**, **Documento**, **Motivo** e **Conteudo**. A coluna `Revisado Por` é opcional.")
+        st.info("Colunas obrigatórias: **Empresa**, **Documento**, **Motivo** e **Conteudo**.")
         upl = st.file_uploader("Selecione um Arquivo CSV ou XLSX", type=['csv','xlsx'])
         if upl and st.button("Processar Arquivo", type="primary", key="btn_process_imp"):
-            # Lógica de Importação (Mantida)
             try:
                 if upl.name.endswith('.csv'):
                     try: df = pd.read_csv(upl)
@@ -315,11 +306,9 @@ def render_adicionar(dados_totais, user):
             except Exception as e: st.error(f"Erro ao processar arquivo: {e}")
 
 def render_manutencao(dados_totais, user):
-    """Renderiza a página de Manutenção com expansores para edição."""
     st.markdown("### Gerenciar e Editar Registros")
     q = st.text_input("Buscar por Frase, Empresa ou Motivo para editar...", placeholder="Digite para filtrar a lista...", key="maint_search")
     
-    # Filtra os dados
     filtrados_manut = [f for f in dados_totais if q.lower() in str(f).lower()] if q else dados_totais
 
     if not filtrados_manut: 
@@ -361,7 +350,6 @@ def render_manutencao(dados_totais, user):
                     st.session_state[f"confirm_delete_{item['id']}"] = True
                     st.rerun()
             
-            # Lógica de Confirmação de Exclusão (Fora do Form)
             if st.session_state.get(f"confirm_delete_{item['id']}", False):
                 st.error("⚠️ Confirmação: Tem certeza que deseja EXCLUIR este item definitivamente?")
                 c_conf, c_canc = st.columns([1, 1])
@@ -378,7 +366,6 @@ def render_manutencao(dados_totais, user):
                     st.rerun()
 
 def render_admin(user, dados_totais):
-    """Renderiza a página Administrativa (apenas para admins)."""
     st.markdown("### Painel Administrativo 👑")
     tab_users, tab_logs = st.tabs(["👥 Gerenciar Usuários", "🔒 Logs & Backup"])
     
@@ -487,34 +474,45 @@ else:
     user = st.session_state["usuario_logado"]
     dados_totais = buscar_dados()
 
-    # 6.1 HEADER (Ajustado o ratio das colunas CRÍTICO)
+    # ----------------------------------------------------------------------
+    # 6.1 HEADER (APENAS LOGO E INFO DO USUÁRIO)
+    # ----------------------------------------------------------------------
     with st.container():
-        # Dando muito mais espaço ao Menu (4) e muito pouco ao usuário (0.8)
-        c_logo, c_menu, c_user = st.columns([1, 4, 0.8], vertical_alignment="center")
+        # Apenas duas colunas: Logo (2) e Info do Usuário (1)
+        c_logo, c_user = st.columns([2, 1], vertical_alignment="center")
         
         with c_logo:
             if LOGO_URL: st.image(LOGO_URL, width=90) 
             else: st.markdown("### Gupy")
 
-        with c_menu:
-            opcoes_map = {"Biblioteca": "📂 Biblioteca", "Adicionar": "➕ Adicionar", "Manutenção": "✏️ Gestão"}
-            if user['admin']: opcoes_map["Admin"] = "⚙️ Admin"
-            
-            opcoes_labels = list(opcoes_map.values())
-            if 'page_sel' not in st.session_state: st.session_state.page_sel = opcoes_labels[0]
-            
-            page_sel = st.radio("Menu", options=opcoes_labels, horizontal=True, label_visibility="collapsed", key='page_sel')
-            page = [k for k, v in opcoes_map.items() if v == page_sel][0]
-
         with c_user:
-            # Removendo o texto "Olá, [nome]" para dar mais espaço, deixando só o botão SAIR
-            if st.button("Sair", key="btn_logout", use_container_width=True): # Botão ocupa a largura da coluna
+            # Texto do usuário e botão SAIR na mesma coluna
+            st.markdown(f"<div class='user-text'>Olá, <b>{user['username']}</b></div>", unsafe_allow_html=True)
+            if st.button("Sair", key="btn_logout", use_container_width=True): 
                 cookie_manager.delete("gupy_user_token")
                 st.session_state["usuario_logado"] = None
                 st.session_state["logout_sync"] = True
                 st.rerun()
 
-    # 6.2 LÓGICA DE TROCA DE SENHA
+    # ----------------------------------------------------------------------
+    # 6.2 MENU DE NAVEGAÇÃO (MOVIDO PARA O CORPO DA PÁGINA)
+    # ----------------------------------------------------------------------
+    with st.container():
+        st.markdown('<div class="menu-container">', unsafe_allow_html=True) # Container com sombra para o menu
+        
+        opcoes_map = {"Biblioteca": "📂 Biblioteca", "Adicionar": "➕ Adicionar", "Manutenção": "✏️ Gestão"}
+        if user['admin']: opcoes_map["Admin"] = "⚙️ Admin"
+        
+        opcoes_labels = list(opcoes_map.values())
+        if 'page_sel' not in st.session_state: st.session_state.page_sel = opcoes_labels[0]
+        
+        # O st.radio tem 100% da largura, garantindo que não será esmagado
+        page_sel = st.radio("Menu", options=opcoes_labels, horizontal=True, label_visibility="collapsed", key='page_sel')
+        page = [k for k, v in opcoes_map.items() if v == page_sel][0]
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # 6.3 LÓGICA DE TROCA DE SENHA E RENDERIZAÇÃO DE PÁGINAS
     if user.get('trocar_senha'):
         st.warning("⚠️ Segurança: Sua senha precisa ser redefinida.")
         with st.form("new_pass"):
@@ -525,7 +523,6 @@ else:
                     user['trocar_senha'] = False; st.success("Senha atualizada!"); time.sleep(1); st.rerun()
                 else: st.error("Senhas inválidas.")
     
-    # 6.3 RENDERIZAÇÃO DE PÁGINAS
     else:
         if page == "Biblioteca":
             render_biblioteca(dados_totais, user)
