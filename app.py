@@ -222,21 +222,27 @@ def tela_adicionar(user):
                         except Exception as e: st.error(f"Erro ao salvar: {e}")
 
     with tab_import:
-        st.info("Carregue uma planilha Excel (.xlsx) com múltiplas frases.")
-        with st.expander("📌 Ver modelo da planilha"):
-            st.markdown("Colunas obrigatórias: `empresa`, `motivo`, `conteudo`. Opcional: `documento`.")
+        st.info("Carregue uma planilha Excel (.xlsx).")
+        with st.expander("📌 Ver colunas da planilha"):
+            st.markdown("""
+            **Colunas Obrigatórias:** `empresa`, `motivo`, `conteudo`.  
+            **Colunas Opcionais:** `documento`, `usuario`, `data`.
+            
+            *Nota: Se 'usuario' ou 'data' não forem informados, o sistema usará o seu login e a data de hoje.*
+            """)
         
         arquivo = st.file_uploader("Selecione o arquivo Excel", type=["xlsx"])
         if arquivo:
             if st.button("🚀 Processar e Importar", type="primary"):
                 try:
                     df = pd.read_excel(arquivo)
-                    df.columns = [c.lower().strip() for c in df.columns]
+                    df.columns = [c.lower().strip() for c in df.columns] # Padroniza colunas
+                    
                     required_cols = {'empresa', 'motivo', 'conteudo'}
                     if not required_cols.issubset(df.columns):
                         st.error(f"Erro: Faltam colunas obrigatórias: {', '.join(required_cols)}")
                     else:
-                        with st.spinner("Verificando duplicatas..."):
+                        with st.spinner("Analisando assinaturas para evitar duplicatas..."):
                             res_existentes = supabase.table("frases").select("empresa, motivo, conteudo").execute()
                             assinaturas_existentes = set()
                             for item in res_existentes.data:
@@ -249,12 +255,38 @@ def tela_adicionar(user):
                                 el = padronizar(row['empresa']); ml = padronizar(row['motivo']); cl = padronizar(row['conteudo'])
                                 ass_atual = gerar_assinatura(el, ml, cl)
                                 
-                                if ass_atual in assinaturas_existentes: duplicados += 1
+                                if ass_atual in assinaturas_existentes: 
+                                    duplicados += 1
                                 else:
+                                    # LÓGICA INTELIGENTE DE USUÁRIO
+                                    # Se tiver coluna 'usuario' preenchida, usa ela. Senão, usa o user logado.
+                                    user_excel = row.get('usuario')
+                                    if pd.notnull(user_excel) and str(user_excel).strip() != "":
+                                        user_final = str(user_excel).strip()
+                                    else:
+                                        user_final = user['username']
+
+                                    # LÓGICA INTELIGENTE DE DATA
+                                    # Se tiver coluna 'data', tenta converter. Senão, usa hoje.
+                                    data_excel = row.get('data')
+                                    data_final = datetime.now().strftime('%Y-%m-%d') # Default hoje
+                                    
+                                    if pd.notnull(data_excel):
+                                        try:
+                                            # Tenta converter qualquer formato de data do Excel para AAAA-MM-DD
+                                            data_final = pd.to_datetime(data_excel).strftime('%Y-%m-%d')
+                                        except:
+                                            pass # Se der erro na conversão, mantém a data de hoje
+
                                     supabase.table("frases").insert({
-                                        "empresa": el, "documento": padronizar(row.get('documento', 'Geral')), "motivo": ml, "conteudo": cl,
-                                        "revisado_por": user['username'], "data_revisao": datetime.now().strftime('%Y-%m-%d')
+                                        "empresa": el, 
+                                        "documento": padronizar(row.get('documento', 'Geral')), 
+                                        "motivo": ml, 
+                                        "conteudo": cl,
+                                        "revisado_por": user_final, 
+                                        "data_revisao": data_final
                                     }).execute()
+                                    
                                     assinaturas_existentes.add(ass_atual); sucesso += 1
                             except: erros += 1
                             progress.progress((i + 1) / total)
@@ -263,7 +295,7 @@ def tela_adicionar(user):
                         c1, c2, c3 = st.columns(3)
                         c1.metric("✅ Importados", sucesso); c2.metric("🚫 Duplicados", duplicados); c3.metric("⚠️ Erros", erros)
                         if sucesso > 0:
-                            registrar_log(user['username'], "Importação em Massa", f"Importou {sucesso} itens.")
+                            registrar_log(user['username'], "Importação em Massa", f"Importou {sucesso} itens com histórico customizado.")
                             time.sleep(4); st.cache_data.clear(); st.rerun()
                 except Exception as e: st.error(f"Erro ao ler arquivo: {e}")
 
@@ -302,7 +334,6 @@ def tela_manutencao(user):
 def tela_admin(user_logado):
     st.markdown("### ⚙️ Painel Administrativo")
     
-    # ADICIONADA ABA "ZONA DE PERIGO"
     tab_users, tab_logs, tab_backup, tab_danger = st.tabs(["👥 Usuários", "📜 Logs", "💾 Backup", "🚨 Zona de Perigo"])
     
     with tab_users:
@@ -350,54 +381,27 @@ def tela_admin(user_logado):
             du = supabase.table("usuarios").select("*").execute().data
             st.download_button("⬇️ Backup Usuários", data=converter_para_csv(du), file_name="users.csv", mime="text/csv", use_container_width=True)
 
-    # --- ABA ZONA DE PERIGO (NOVA) ---
     with tab_danger:
-        st.markdown("""
-        <div class="danger-zone">
-            <h3 style="color:#b91c1c; margin-top:0;">☢️ Reset do Sistema</h3>
-            <p style="color:#7f1d1d;">Estas ações são <b>irreversíveis</b>. Todos os dados selecionados serão apagados permanentemente.</p>
-        </div>
-        """, unsafe_allow_html=True)
-        st.write("")
-        
+        st.markdown("""<div class="danger-zone"><h3 style="color:#b91c1c; margin-top:0;">☢️ Reset do Sistema</h3><p style="color:#7f1d1d;">Ações irreversíveis.</p></div>""", unsafe_allow_html=True); st.write("")
         col_danger1, col_danger2 = st.columns(2)
-        
-        # OPÇÃO 1: Zerar Frases
         with col_danger1:
-            st.markdown("#### 🗑️ Excluir Todas as Frases")
-            st.caption("Remove todo o conteúdo da biblioteca. O histórico de logs e usuários será mantido.")
-            confirm_phrases = st.text_input("Digite 'CONFIRMAR' para liberar:", key="confirm_phrases")
-            
-            btn_disabled = confirm_phrases != "CONFIRMAR"
-            if st.button("💥 APAGAR TODAS AS FRASES", type="primary", disabled=btn_disabled, use_container_width=True):
+            st.markdown("#### 🗑️ Excluir Frases"); st.caption("Remove todo o conteúdo.")
+            confirm_phrases = st.text_input("Digite 'CONFIRMAR':", key="confirm_phrases")
+            if st.button("💥 APAGAR TODAS AS FRASES", type="primary", disabled=confirm_phrases!="CONFIRMAR", use_container_width=True):
                 try:
-                    # Supabase delete all trick: delete where ID is not 0
                     supabase.table("frases").delete().neq("id", 0).execute()
-                    registrar_log(user_logado['username'], "RESET FRASES", "Apagou todas as frases do sistema")
-                    st.success("Todas as frases foram removidas com sucesso.")
-                    time.sleep(2)
-                    st.cache_data.clear()
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Erro ao tentar zerar: {e}")
-
-        # OPÇÃO 2: Zerar Usuários (Factory Reset)
+                    registrar_log(user_logado['username'], "RESET FRASES", "Apagou todas as frases")
+                    st.success("Removido."); time.sleep(2); st.cache_data.clear(); st.rerun()
+                except Exception as e: st.error(f"Erro: {e}")
         with col_danger2:
-            st.markdown("#### 🏭 Reset de Usuários")
-            st.caption("Remove todos os usuários, EXCETO você. Logs serão mantidos.")
-            confirm_users = st.text_input("Digite 'RESETAR TUDO' para liberar:", key="confirm_users")
-            
-            btn_users_disabled = confirm_users != "RESETAR TUDO"
-            if st.button("💥 APAGAR OUTROS USUÁRIOS", type="primary", disabled=btn_users_disabled, use_container_width=True):
+            st.markdown("#### 🏭 Reset Usuários"); st.caption("Remove outros usuários.")
+            confirm_users = st.text_input("Digite 'RESETAR TUDO':", key="confirm_users")
+            if st.button("💥 APAGAR OUTROS USUÁRIOS", type="primary", disabled=confirm_users!="RESETAR TUDO", use_container_width=True):
                 try:
-                    # Apaga todos cujo username não é o seu
                     supabase.table("usuarios").delete().neq("username", user_logado['username']).execute()
-                    registrar_log(user_logado['username'], "RESET USUARIOS", "Apagou todos os outros usuários")
-                    st.success("Todos os outros usuários foram removidos.")
-                    time.sleep(2)
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Erro ao tentar zerar usuários: {e}")
+                    registrar_log(user_logado['username'], "RESET USUARIOS", "Apagou outros usuários")
+                    st.success("Removido."); time.sleep(2); st.rerun()
+                except Exception as e: st.error(f"Erro: {e}")
 
 # ==============================================================================
 # 6. CONTROLE DE FLUXO
@@ -449,4 +453,4 @@ else:
     elif selecao == "Manutenção": tela_manutencao(user)
     elif selecao == "Admin": tela_admin(user)
 
-    st.markdown("<br><div style='text-align:center; color:#CCC; font-size:0.8rem'>Gupy Frases v3.5 • Zona de Perigo Ativa</div>", unsafe_allow_html=True)
+    st.markdown("<br><div style='text-align:center; color:#CCC; font-size:0.8rem'>Gupy Frases v3.6 • Importação Avançada</div>", unsafe_allow_html=True)
