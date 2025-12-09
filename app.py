@@ -9,7 +9,13 @@ import pandas as pd
 from PIL import Image
 import extra_streamlit_components as stx
 import hashlib
-import html  # Importante para segurança do texto HTML
+import html
+# --- NOVA BIBLIOTECA PARA O BOTÃO DE COPIAR ---
+try:
+    from st_copy_to_clipboard import st_copy_to_clipboard
+except ImportError:
+    st.error("⚠️ Biblioteca em falta. Por favor, execute: pip install st-copy-to-clipboard")
+    st.stop()
 
 # ==============================================================================
 # 1. CONFIGURAÇÕES E INICIALIZAÇÃO
@@ -31,7 +37,7 @@ favicon = carregar_favicon(FAVICON_URL)
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. ESTILO CSS (LIMPO E OTIMIZADO)
+# 2. ESTILO CSS
 # ==============================================================================
 st.markdown("""
 <style>
@@ -41,7 +47,6 @@ st.markdown("""
     .block-container { padding-top: 1.5rem !important; }
     header { visibility: hidden; }
     
-    /* Estilo dos Cartões */
     div[data-testid="stVerticalBlockBorderWrapper"] {
         border-radius: 12px !important;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
@@ -54,6 +59,13 @@ st.markdown("""
         font-weight: 600;
         transition: all 0.3s ease;
     }
+    
+    /* Ajuste para o botão de copiar ficar bonito */
+    div.stButton button:contains("Copiar") {
+        background-color: #f0f2f6;
+        color: #31333F;
+        border: 1px solid #dce0e6;
+    }
 
     .danger-zone { border: 1px solid #ff4b4b; background-color: #fff5f5; padding: 20px; border-radius: 10px; color: #7f1d1d; }
     .filter-label { font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 5px; }
@@ -62,7 +74,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. GERENCIAMENTO DE DADOS (SUPABASE & PANDAS)
+# 3. GERENCIAMENTO DE DADOS
 # ==============================================================================
 try:
     url_db = st.secrets["SUPABASE_URL"]
@@ -114,10 +126,8 @@ def registrar_log(usuario, acao, detalhe):
     except Exception: pass
 
 # --- Funções de Busca Inteligente ---
-
 @st.cache_data(ttl=300)
 def obter_dataframe_filtros():
-    """Baixa metadados leves para alimentar os filtros dinâmicos na memória."""
     try:
         res = supabase.table("frases").select("id, empresa, documento, motivo, conteudo").execute()
         df = pd.DataFrame(res.data)
@@ -126,20 +136,16 @@ def obter_dataframe_filtros():
         return pd.DataFrame()
 
 def buscar_frases_final(termo=None, empresa_filtro="Todas", doc_filtro="Todos"):
-    """Busca pesada final no banco de dados para exibição."""
     query = supabase.table("frases").select("*").order("id", desc=True)
-    
     if termo:
         filtro = f"conteudo.ilike.%{termo}%,empresa.ilike.%{termo}%,motivo.ilike.%{termo}%"
         query = query.or_(filtro)
-    
     if empresa_filtro != "Todas": query = query.eq("empresa", empresa_filtro)
     if doc_filtro != "Todos": query = query.eq("documento", doc_filtro)
-        
     return query.limit(50 if termo else 8).execute().data or []
 
 # ==============================================================================
-# 4. COMPONENTES VISUAIS (CORREÇÃO VIA HTML PURO)
+# 4. COMPONENTES VISUAIS (COM BOTÃO DE COPIAR)
 # ==============================================================================
 
 def card_frase(frase):
@@ -151,37 +157,42 @@ def card_frase(frase):
         with c_head2:
              st.markdown(f"<div style='text-align:right; font-size:0.8em; color:#CCC'>#{frase['id']}</div>", unsafe_allow_html=True)
         
-        # --- SOLUÇÃO DE VISUALIZAÇÃO ---
-        # Usamos HTML direto para garantir a quebra de linha (word-wrap)
-        # O 'html.escape' previne erros se houver caracteres especiais no texto
+        # --- HTML VISUAL (TEXTO COMPLETO) ---
         texto_seguro = html.escape(frase['conteudo'])
-        
         st.markdown(f"""
         <div style="
-            background-color: #f0f2f6;
-            border: 1px solid #dce0e6;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
             border-radius: 8px;
             padding: 15px;
             font-family: 'Courier New', monospace;
             font-size: 0.9rem;
-            color: #31333F;
-            white-space: pre-wrap;       /* Mantém parágrafos e quebra linhas */
-            word-wrap: break-word;       /* Quebra palavras longas */
-            overflow-wrap: break-word;   /* Garante que não estoure a largura */
-            line-height: 1.5;
+            color: #212529;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
             margin-top: 10px;
+            margin-bottom: 10px;
         ">
             {texto_seguro}
         </div>
         """, unsafe_allow_html=True)
-        # --------------------------------
         
-        st.markdown(f"""
-        <div style='display:flex; justify-content:space-between; font-size:0.75rem; color:#888; margin-top:5px; border-top:1px dashed #eee; padding-top:5px;'>
-            <span>✍️ Rev: {frase.get('revisado_por', 'Sistema')}</span>
-            <span>📅 {frase.get('data_revisao', '-')}</span>
-        </div>
-        """, unsafe_allow_html=True)
+        # --- RODAPÉ COM BOTÃO DE COPIAR ---
+        c_footer1, c_footer2 = st.columns([3, 1], vertical_alignment="center")
+        
+        with c_footer1:
+            st.markdown(f"""
+            <div style='font-size:0.75rem; color:#888;'>
+                ✍️ {frase.get('revisado_por', 'Sistema')} | 📅 {frase.get('data_revisao', '-')}
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with c_footer2:
+            # BOTÃO DE COPIAR AUTOMÁTICO
+            # O texto do botão será "📋 Copiar"
+            # 'text' é o que vai para o clipboard
+            st_copy_to_clipboard(frase['conteudo'], "📋 Copiar", key=f"cp_{frase['id']}")
 
 # ==============================================================================
 # 5. TELAS DO SISTEMA
@@ -189,7 +200,6 @@ def card_frase(frase):
 
 def tela_biblioteca(user):
     st.markdown("### 📂 Biblioteca de Modelos")
-    
     df_filtros = obter_dataframe_filtros()
     
     with st.container(border=True):
@@ -199,7 +209,6 @@ def tela_biblioteca(user):
             termo = st.text_input("Busca", placeholder="Palavra-chave...", label_visibility="collapsed")
 
         df_temp = df_filtros.copy()
-        
         if termo and not df_temp.empty:
             termo_lower = termo.lower()
             mask = (
@@ -209,8 +218,7 @@ def tela_biblioteca(user):
             )
             df_temp = df_temp[mask]
 
-        if not df_temp.empty:
-            lista_empresas = sorted(df_temp['empresa'].dropna().unique().tolist())
+        if not df_temp.empty: lista_empresas = sorted(df_temp['empresa'].dropna().unique().tolist())
         else: lista_empresas = []
         opcoes_empresas = ["Todas"] + lista_empresas
 
@@ -218,11 +226,9 @@ def tela_biblioteca(user):
             st.markdown('<div class="filter-label">🏢 Empresa</div>', unsafe_allow_html=True)
             empresa = st.selectbox("Empresa", options=opcoes_empresas, label_visibility="collapsed")
 
-        if empresa != "Todas" and not df_temp.empty:
-            df_temp = df_temp[df_temp['empresa'] == empresa]
+        if empresa != "Todas" and not df_temp.empty: df_temp = df_temp[df_temp['empresa'] == empresa]
         
-        if not df_temp.empty:
-            lista_docs = sorted(df_temp['documento'].dropna().unique().tolist())
+        if not df_temp.empty: lista_docs = sorted(df_temp['documento'].dropna().unique().tolist())
         else: lista_docs = []
         opcoes_docs = ["Todos"] + lista_docs
 
@@ -233,9 +239,7 @@ def tela_biblioteca(user):
     with st.spinner("Carregando frases..."):
         dados = buscar_frases_final(termo if termo else None, empresa, doc_tipo)
 
-    if not dados:
-        st.warning("📭 Nenhuma frase encontrada.")
-        return
+    if not dados: st.warning("📭 Nenhuma frase encontrada."); return
 
     st.markdown(f"<small style='color:#666'>Encontrados: {len(dados)} modelos</small>", unsafe_allow_html=True)
     st.divider()
@@ -248,7 +252,6 @@ def tela_biblioteca(user):
 def tela_adicionar(user):
     st.markdown("### ➕ Adicionar Novo Modelo")
     tab_manual, tab_import = st.tabs(["📝 Manual", "📗 Importar Excel"])
-    
     with tab_manual:
         with st.form("form_add", clear_on_submit=True):
             c1, c2 = st.columns(2)
@@ -256,7 +259,6 @@ def tela_adicionar(user):
             nd = c2.text_input("Tipo de Documento", placeholder="Ex: Carta Recusa")
             nm = st.text_input("Motivo", placeholder="Ex: Baixa Qualificação")
             nc = st.text_area("Texto do Modelo", height=150)
-            
             if st.form_submit_button("💾 Salvar Frase", type="primary", use_container_width=True):
                 if not (ne and nm and nc): st.error("Preencha campos obrigatórios.")
                 else:
@@ -306,15 +308,12 @@ def tela_manutencao(user):
     st.markdown("### 🛠️ Editar ou Excluir")
     q = st.text_input("Buscar ID ou Termo", placeholder="ID ou texto...")
     query = supabase.table("frases").select("*").order("id", desc=True)
-    
     if q:
         if q.isdigit(): query = query.eq("id", q)
         else: query = query.or_(f"empresa.ilike.%{q}%,motivo.ilike.%{q}%")
     else: query = query.limit(5)
-        
     items = query.execute().data
     if not items and q: st.info("Nada encontrado.")
-    
     for item in items:
         with st.expander(f"#{item['id']} | {item['empresa']} - {item['motivo']}"):
             with st.form(key=f"fe_{item['id']}"):
@@ -324,13 +323,11 @@ def tela_manutencao(user):
                 nd = c3.text_input("Doc", value=item['documento'])
                 nc = st.text_area("Conteúdo", value=item['conteudo'], height=150)
                 c_sv, c_del = st.columns([1, 4])
-                
                 if c_sv.form_submit_button("💾 Salvar"):
                     supabase.table("frases").update({
                         "empresa": ne, "motivo": nm, "documento": nd, "conteudo": nc, "revisado_por": user['username']
                     }).eq("id", item['id']).execute()
                     registrar_log(user['username'], "Editar", f"ID: {item['id']}"); st.toast("Salvo!"); time.sleep(1); st.cache_data.clear(); st.rerun()
-                
                 if c_del.form_submit_button("🗑️ Excluir"):
                     supabase.table("frases").delete().eq("id", item['id']).execute()
                     registrar_log(user['username'], "Excluir", f"ID: {item['id']}"); st.toast("Excluído!"); time.sleep(1); st.cache_data.clear(); st.rerun()
@@ -338,7 +335,6 @@ def tela_manutencao(user):
 def tela_admin(user_logado):
     st.markdown("### ⚙️ Administração")
     tab_users, tab_logs, tab_bkp, tab_danger = st.tabs(["👥 Usuários", "📜 Logs", "💾 Backup", "🚨 Danger"])
-    
     with tab_users:
         users = supabase.table("usuarios").select("*").order("id").execute().data
         for u in users:
@@ -352,7 +348,6 @@ def tela_admin(user_logado):
                     if st.form_submit_button("Excluir"):
                          if u['username'] != user_logado['username']:
                              supabase.table("usuarios").delete().eq("id", u['id']).execute(); st.rerun()
-        
         with st.container(border=True):
             st.markdown("New User"); nu = st.text_input("User"); ns = st.text_input("Pass", type="password"); na = st.checkbox("Admin")
             if st.button("Criar") and nu and ns:
@@ -420,4 +415,4 @@ else:
     elif selecao == "Manutenção": tela_manutencao(user)
     elif selecao == "Admin": tela_admin(user)
     
-    st.markdown('<div class="footer">Desenvolvido com Streamlit • Gupy Frases v2.4</div>', unsafe_allow_html=True)
+    st.markdown('<div class="footer">Desenvolvido com Streamlit • Gupy Frases v2.5</div>', unsafe_allow_html=True)
