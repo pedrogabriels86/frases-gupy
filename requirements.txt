@@ -5,3 +5,4 @@ openpyxl
 extra-streamlit-components
 requests
 Pillow
+st-keyup  <-- ADICIONA ESTA LINHA NOVO
