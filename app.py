@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import io
 import requests
 import csv
-import pandas as pd # Reintroduzido para leitura robusta de Excel
+import pandas as pd
 from PIL import Image
 import extra_streamlit_components as stx
 
@@ -127,7 +127,15 @@ def listar_empresas_unicas():
     except: return ["Todas"]
 
 def padronizar(texto):
+    """Limpa espaços extras e converte para string"""
     return str(texto).strip() if texto else ""
+
+def gerar_assinatura(empresa, motivo, conteudo):
+    """Cria uma string única para identificar duplicatas"""
+    t1 = padronizar(empresa).lower()
+    t2 = padronizar(motivo).lower()
+    t3 = padronizar(conteudo).lower()
+    return f"{t1}|{t2}|{t3}"
 
 # ==============================================================================
 # 4. COMPONENTES VISUAIS (WIDGETS REUTILIZÁVEIS)
@@ -179,7 +187,6 @@ def tela_biblioteca(user):
 def tela_adicionar(user):
     st.markdown("### ➕ Nova Frase")
     
-    # Divisão em Abas: Manual vs Excel
     tab_manual, tab_import = st.tabs(["📝 Cadastro Manual", "📗 Importar Excel"])
     
     # --- ABA 1: MANUAL ---
@@ -199,34 +206,38 @@ def tela_adicionar(user):
                         st.warning("Preencha todos os campos obrigatórios.")
                     else:
                         try:
-                            supabase.table("frases").insert({
-                                "empresa": padronizar(ne), 
-                                "documento": padronizar(nd), 
-                                "motivo": padronizar(nm), 
-                                "conteudo": padronizar(nc), 
-                                "revisado_por": user['username'], 
-                                "data_revisao": datetime.now().strftime('%Y-%m-%d')
-                            }).execute()
-                            registrar_log(user['username'], "Adicionar Frase", f"Empresa: {ne} - Motivo: {nm}")
-                            st.success("Frase salva com sucesso!")
-                            time.sleep(1)
-                            st.cache_data.clear()
-                            st.rerun()
+                            # Verifica duplicata simples antes de inserir
+                            check = supabase.table("frases").select("id").eq("conteudo", padronizar(nc)).execute()
+                            if check.data:
+                                st.warning("Atenção: Já existe uma frase com este conteúdo exato.")
+                            else:
+                                supabase.table("frases").insert({
+                                    "empresa": padronizar(ne), 
+                                    "documento": padronizar(nd), 
+                                    "motivo": padronizar(nm), 
+                                    "conteudo": padronizar(nc), 
+                                    "revisado_por": user['username'], 
+                                    "data_revisao": datetime.now().strftime('%Y-%m-%d')
+                                }).execute()
+                                registrar_log(user['username'], "Adicionar Frase", f"Empresa: {ne} - Motivo: {nm}")
+                                st.success("Frase salva com sucesso!")
+                                time.sleep(1)
+                                st.cache_data.clear()
+                                st.rerun()
                         except Exception as e:
                             st.error(f"Erro ao salvar: {e}")
 
-    # --- ABA 2: IMPORTAR EXCEL ---
+    # --- ABA 2: IMPORTAR EXCEL (COM VALIDAÇÃO) ---
     with tab_import:
         st.info("Carregue uma planilha Excel (.xlsx) com múltiplas frases.")
         
-        # Helper para o usuário saber o formato
-        with st.expander("📌 Ver modelo da planilha (Colunas Obrigatórias)"):
+        with st.expander("📌 Ver modelo da planilha"):
             st.markdown("""
-            O seu arquivo Excel deve conter **exatamente** estas colunas na primeira linha (cabeçalho):
+            Colunas obrigatórias na primeira linha:
             - `empresa`
-            - `documento`
             - `motivo`
             - `conteudo`
+            - `documento` (opcional)
             """)
         
         arquivo = st.file_uploader("Selecione o arquivo Excel", type=["xlsx"])
@@ -235,43 +246,72 @@ def tela_adicionar(user):
             if st.button("🚀 Processar e Importar", type="primary"):
                 try:
                     df = pd.read_excel(arquivo)
-                    
-                    # Padronizar nomes das colunas (tudo minúsculo, sem espaços)
                     df.columns = [c.lower().strip() for c in df.columns]
                     
-                    required_cols = {'empresa', 'motivo', 'conteudo'} # Documento é opcional
+                    required_cols = {'empresa', 'motivo', 'conteudo'}
                     if not required_cols.issubset(df.columns):
                         st.error(f"Erro: O arquivo deve conter as colunas: {', '.join(required_cols)}")
                     else:
-                        # Barra de progresso visual
+                        # 1. Carregar frases existentes para evitar duplicatas (Performance: Baixa apenas campos necessários)
+                        with st.spinner("Verificando duplicatas no banco de dados..."):
+                            res_existentes = supabase.table("frases").select("empresa, motivo, conteudo").execute()
+                            
+                            # Cria um "SET" (Conjunto) com assinaturas únicas das frases existentes
+                            assinaturas_existentes = set()
+                            for item in res_existentes.data:
+                                ass = gerar_assinatura(item['empresa'], item['motivo'], item['conteudo'])
+                                assinaturas_existentes.add(ass)
+
                         progress_bar = st.progress(0)
                         total = len(df)
                         sucesso = 0
+                        duplicados = 0
                         erros = 0
                         
+                        # 2. Iterar e verificar
                         for i, row in df.iterrows():
                             try:
-                                supabase.table("frases").insert({
-                                    "empresa": padronizar(row['empresa']),
-                                    "documento": padronizar(row.get('documento', 'Geral')), # Default se nao tiver
-                                    "motivo": padronizar(row['motivo']),
-                                    "conteudo": padronizar(row['conteudo']),
-                                    "revisado_por": user['username'],
-                                    "data_revisao": datetime.now().strftime('%Y-%m-%d')
-                                }).execute()
-                                sucesso += 1
+                                empresa_limpa = padronizar(row['empresa'])
+                                motivo_limpo = padronizar(row['motivo'])
+                                conteudo_limpo = padronizar(row['conteudo'])
+                                
+                                # Gera assinatura da linha atual do Excel
+                                assinatura_atual = gerar_assinatura(empresa_limpa, motivo_limpo, conteudo_limpo)
+                                
+                                if assinatura_atual in assinaturas_existentes:
+                                    duplicados += 1
+                                else:
+                                    # Se não existe, insere
+                                    supabase.table("frases").insert({
+                                        "empresa": empresa_limpa,
+                                        "documento": padronizar(row.get('documento', 'Geral')),
+                                        "motivo": motivo_limpo,
+                                        "conteudo": conteudo_limpo,
+                                        "revisado_por": user['username'],
+                                        "data_revisao": datetime.now().strftime('%Y-%m-%d')
+                                    }).execute()
+                                    
+                                    # Adiciona ao set local para evitar duplicatas dentro do próprio Excel
+                                    assinaturas_existentes.add(assinatura_atual)
+                                    sucesso += 1
+                                    
                             except:
                                 erros += 1
                             
-                            # Atualiza barra
                             progress_bar.progress((i + 1) / total)
                         
-                        st.success(f"Processo finalizado! Importados: {sucesso} | Erros: {erros}")
-                        registrar_log(user['username'], "Importação em Massa", f"Importou {sucesso} frases via Excel")
+                        # Relatório Final
+                        st.success("Processamento concluído!")
+                        c_res1, c_res2, c_res3 = st.columns(3)
+                        c_res1.metric("✅ Importados", sucesso)
+                        c_res2.metric("🚫 Duplicados (Ignorados)", duplicados)
+                        c_res3.metric("⚠️ Erros", erros)
                         
-                        time.sleep(2)
-                        st.cache_data.clear()
-                        st.rerun()
+                        if sucesso > 0:
+                            registrar_log(user['username'], "Importação em Massa", f"Importou {sucesso} itens. {duplicados} duplicados ignorados.")
+                            time.sleep(4) # Tempo para ler o relatório
+                            st.cache_data.clear()
+                            st.rerun()
                         
                 except Exception as e:
                     st.error(f"Erro ao ler arquivo: {e}")
@@ -463,4 +503,4 @@ else:
     elif selecao == "Manutenção": tela_manutencao(user)
     elif selecao == "Admin": tela_admin(user)
 
-    st.markdown("<br><div style='text-align:center; color:#CCC; font-size:0.8rem'>Gupy Frases v3.3 • Com Importação Excel</div>", unsafe_allow_html=True)
+    st.markdown("<br><div style='text-align:center; color:#CCC; font-size:0.8rem'>Gupy Frases v3.4 • Validação de Duplicatas</div>", unsafe_allow_html=True)
