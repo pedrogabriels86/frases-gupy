@@ -57,14 +57,39 @@ st.markdown("""
         border: 1px solid #f0f2f6;
     }
     
-    /* Botões Gerais */
+    /* --- CLASSE MÁGICA PARA O TEXTO DA FRASE --- */
+    /* Aqui definimos o visual da frase uma única vez */
+    .frase-box {
+        background-color: #f8f9fa;       /* Fundo cinza bem claro */
+        border: 1px solid #e9ecef;       /* Borda sutil */
+        border-radius: 8px;
+        padding: 16px;                   /* Espaço interno */
+        
+        /* Tipografia */
+        font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+        font-size: 15px;
+        color: #2d3748;                  /* Cinza escuro */
+        line-height: 1.6;                /* Espaçamento confortável */
+        text-align: left;
+        
+        /* Quebra de linha OBRIGATÓRIA */
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+    /* -------------------------------------------- */
+    
+    /* Botões */
     div.stButton > button {
         border-radius: 8px;
         font-weight: 600;
         transition: all 0.3s ease;
     }
     
-    /* Ajuste específico para o botão de copiar ficar discreto */
+    /* Botão de Copiar */
     div.stButton button:contains("Copiar") {
         background-color: #f8f9fa;
         color: #4a5568;
@@ -155,7 +180,7 @@ def buscar_frases_final(termo=None, empresa_filtro="Todas", doc_filtro="Todos"):
     return query.limit(50 if termo else 8).execute().data or []
 
 # ==============================================================================
-# 4. COMPONENTES VISUAIS (PADRONIZADOS E COM COPIA)
+# 4. COMPONENTES VISUAIS (CORRIGIDO)
 # ==============================================================================
 
 def card_frase(frase):
@@ -167,30 +192,13 @@ def card_frase(frase):
         with c_head2:
              st.markdown(f"<div style='text-align:right; font-size:0.8em; color:#CCC'>#{frase['id']}</div>", unsafe_allow_html=True)
         
-        # --- HTML PADRONIZADO (AQUI VOCÊ CONFIGURA A FONTE/TAMANHO) ---
+        # --- HTML VISUAL ---
+        # Agora usamos apenas a classe 'frase-box' que definimos no CSS lá em cima.
+        # Isso evita erros de aspas quebradas.
         texto_seguro = html.escape(frase['conteudo'])
         
         st.markdown(f"""
-        <div style="
-            background-color: #f8f9fa;       /* Fundo cinza bem claro */
-            border: 1px solid #e9ecef;       /* Borda sutil */
-            border-radius: 8px;
-            padding: 16px;                   /* Espaço interno */
-            
-            /* -- PADRONIZAÇÃO DE TEXTO -- */
-            font-family: 'Inter', 'Segoe UI', Arial, sans-serif; /* Fonte moderna */
-            font-size: 15px;                 /* Tamanho legível */
-            color: #2d3748;                  /* Cinza escuro (confortável) */
-            line-height: 1.6;                /* Espaçamento entre linhas */
-            text-align: left;
-            
-            /* -- REGRAS DE QUEBRA -- */
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            margin-top: 10px;
-            margin-bottom: 10px;
-        ">
+        <div class="frase-box">
             {texto_seguro}
         </div>
         """, unsafe_allow_html=True)
@@ -206,7 +214,6 @@ def card_frase(frase):
             """, unsafe_allow_html=True)
             
         with c_footer2:
-            # Botão de copiar da biblioteca externa
             st_copy_to_clipboard(frase['conteudo'], "📋 Copiar", key=f"cp_{frase['id']}")
 
 # ==============================================================================
@@ -430,4 +437,4 @@ else:
     elif selecao == "Manutenção": tela_manutencao(user)
     elif selecao == "Admin": tela_admin(user)
     
-    st.markdown('<div class="footer">Desenvolvido com Streamlit • Gupy Frases v2.6</div>', unsafe_allow_html=True)
+    st.markdown('<div class="footer">Desenvolvido com Streamlit • Gupy Frases v2.7</div>', unsafe_allow_html=True)
