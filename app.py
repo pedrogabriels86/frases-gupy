@@ -62,6 +62,14 @@ st.markdown("""
         display: flex;
         justify-content: center;
     }
+    
+    /* Estilo para a Zona de Perigo */
+    .danger-zone {
+        border: 1px solid #ff4b4b;
+        background-color: #fff5f5;
+        padding: 20px;
+        border-radius: 10px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -100,7 +108,6 @@ def registrar_log(usuario, acao, detalhe):
     except: pass
 
 def converter_para_csv(dados):
-    """Converte lista de dicionários para string CSV"""
     if not dados: return ""
     output = io.StringIO()
     if len(dados) > 0:
@@ -127,18 +134,16 @@ def listar_empresas_unicas():
     except: return ["Todas"]
 
 def padronizar(texto):
-    """Limpa espaços extras e converte para string"""
     return str(texto).strip() if texto else ""
 
 def gerar_assinatura(empresa, motivo, conteudo):
-    """Cria uma string única para identificar duplicatas"""
     t1 = padronizar(empresa).lower()
     t2 = padronizar(motivo).lower()
     t3 = padronizar(conteudo).lower()
     return f"{t1}|{t2}|{t3}"
 
 # ==============================================================================
-# 4. COMPONENTES VISUAIS (WIDGETS REUTILIZÁVEIS)
+# 4. COMPONENTES VISUAIS
 # ==============================================================================
 
 def card_frase(frase):
@@ -186,10 +191,8 @@ def tela_biblioteca(user):
 
 def tela_adicionar(user):
     st.markdown("### ➕ Nova Frase")
-    
     tab_manual, tab_import = st.tabs(["📝 Cadastro Manual", "📗 Importar Excel"])
     
-    # --- ABA 1: MANUAL ---
     with tab_manual:
         st.info("Preencha os dados abaixo para cadastrar um novo modelo.")
         with st.container(border=True):
@@ -206,243 +209,195 @@ def tela_adicionar(user):
                         st.warning("Preencha todos os campos obrigatórios.")
                     else:
                         try:
-                            # Verifica duplicata simples antes de inserir
                             check = supabase.table("frases").select("id").eq("conteudo", padronizar(nc)).execute()
                             if check.data:
                                 st.warning("Atenção: Já existe uma frase com este conteúdo exato.")
                             else:
                                 supabase.table("frases").insert({
-                                    "empresa": padronizar(ne), 
-                                    "documento": padronizar(nd), 
-                                    "motivo": padronizar(nm), 
-                                    "conteudo": padronizar(nc), 
-                                    "revisado_por": user['username'], 
-                                    "data_revisao": datetime.now().strftime('%Y-%m-%d')
+                                    "empresa": padronizar(ne), "documento": padronizar(nd), "motivo": padronizar(nm), "conteudo": padronizar(nc), 
+                                    "revisado_por": user['username'], "data_revisao": datetime.now().strftime('%Y-%m-%d')
                                 }).execute()
                                 registrar_log(user['username'], "Adicionar Frase", f"Empresa: {ne} - Motivo: {nm}")
-                                st.success("Frase salva com sucesso!")
-                                time.sleep(1)
-                                st.cache_data.clear()
-                                st.rerun()
-                        except Exception as e:
-                            st.error(f"Erro ao salvar: {e}")
+                                st.success("Frase salva com sucesso!"); time.sleep(1); st.cache_data.clear(); st.rerun()
+                        except Exception as e: st.error(f"Erro ao salvar: {e}")
 
-    # --- ABA 2: IMPORTAR EXCEL (COM VALIDAÇÃO) ---
     with tab_import:
         st.info("Carregue uma planilha Excel (.xlsx) com múltiplas frases.")
-        
         with st.expander("📌 Ver modelo da planilha"):
-            st.markdown("""
-            Colunas obrigatórias na primeira linha:
-            - `empresa`
-            - `motivo`
-            - `conteudo`
-            - `documento` (opcional)
-            """)
+            st.markdown("Colunas obrigatórias: `empresa`, `motivo`, `conteudo`. Opcional: `documento`.")
         
         arquivo = st.file_uploader("Selecione o arquivo Excel", type=["xlsx"])
-        
         if arquivo:
             if st.button("🚀 Processar e Importar", type="primary"):
                 try:
                     df = pd.read_excel(arquivo)
                     df.columns = [c.lower().strip() for c in df.columns]
-                    
                     required_cols = {'empresa', 'motivo', 'conteudo'}
                     if not required_cols.issubset(df.columns):
-                        st.error(f"Erro: O arquivo deve conter as colunas: {', '.join(required_cols)}")
+                        st.error(f"Erro: Faltam colunas obrigatórias: {', '.join(required_cols)}")
                     else:
-                        # 1. Carregar frases existentes para evitar duplicatas (Performance: Baixa apenas campos necessários)
-                        with st.spinner("Verificando duplicatas no banco de dados..."):
+                        with st.spinner("Verificando duplicatas..."):
                             res_existentes = supabase.table("frases").select("empresa, motivo, conteudo").execute()
-                            
-                            # Cria um "SET" (Conjunto) com assinaturas únicas das frases existentes
                             assinaturas_existentes = set()
                             for item in res_existentes.data:
-                                ass = gerar_assinatura(item['empresa'], item['motivo'], item['conteudo'])
-                                assinaturas_existentes.add(ass)
+                                assinaturas_existentes.add(gerar_assinatura(item['empresa'], item['motivo'], item['conteudo']))
 
-                        progress_bar = st.progress(0)
-                        total = len(df)
-                        sucesso = 0
-                        duplicados = 0
-                        erros = 0
+                        progress = st.progress(0); total = len(df); sucesso = 0; duplicados = 0; erros = 0
                         
-                        # 2. Iterar e verificar
                         for i, row in df.iterrows():
                             try:
-                                empresa_limpa = padronizar(row['empresa'])
-                                motivo_limpo = padronizar(row['motivo'])
-                                conteudo_limpo = padronizar(row['conteudo'])
+                                el = padronizar(row['empresa']); ml = padronizar(row['motivo']); cl = padronizar(row['conteudo'])
+                                ass_atual = gerar_assinatura(el, ml, cl)
                                 
-                                # Gera assinatura da linha atual do Excel
-                                assinatura_atual = gerar_assinatura(empresa_limpa, motivo_limpo, conteudo_limpo)
-                                
-                                if assinatura_atual in assinaturas_existentes:
-                                    duplicados += 1
+                                if ass_atual in assinaturas_existentes: duplicados += 1
                                 else:
-                                    # Se não existe, insere
                                     supabase.table("frases").insert({
-                                        "empresa": empresa_limpa,
-                                        "documento": padronizar(row.get('documento', 'Geral')),
-                                        "motivo": motivo_limpo,
-                                        "conteudo": conteudo_limpo,
-                                        "revisado_por": user['username'],
-                                        "data_revisao": datetime.now().strftime('%Y-%m-%d')
+                                        "empresa": el, "documento": padronizar(row.get('documento', 'Geral')), "motivo": ml, "conteudo": cl,
+                                        "revisado_por": user['username'], "data_revisao": datetime.now().strftime('%Y-%m-%d')
                                     }).execute()
-                                    
-                                    # Adiciona ao set local para evitar duplicatas dentro do próprio Excel
-                                    assinaturas_existentes.add(assinatura_atual)
-                                    sucesso += 1
-                                    
-                            except:
-                                erros += 1
-                            
-                            progress_bar.progress((i + 1) / total)
+                                    assinaturas_existentes.add(ass_atual); sucesso += 1
+                            except: erros += 1
+                            progress.progress((i + 1) / total)
                         
-                        # Relatório Final
-                        st.success("Processamento concluído!")
-                        c_res1, c_res2, c_res3 = st.columns(3)
-                        c_res1.metric("✅ Importados", sucesso)
-                        c_res2.metric("🚫 Duplicados (Ignorados)", duplicados)
-                        c_res3.metric("⚠️ Erros", erros)
-                        
+                        st.success("Concluído!")
+                        c1, c2, c3 = st.columns(3)
+                        c1.metric("✅ Importados", sucesso); c2.metric("🚫 Duplicados", duplicados); c3.metric("⚠️ Erros", erros)
                         if sucesso > 0:
-                            registrar_log(user['username'], "Importação em Massa", f"Importou {sucesso} itens. {duplicados} duplicados ignorados.")
-                            time.sleep(4) # Tempo para ler o relatório
-                            st.cache_data.clear()
-                            st.rerun()
-                        
-                except Exception as e:
-                    st.error(f"Erro ao ler arquivo: {e}")
+                            registrar_log(user['username'], "Importação em Massa", f"Importou {sucesso} itens.")
+                            time.sleep(4); st.cache_data.clear(); st.rerun()
+                except Exception as e: st.error(f"Erro ao ler arquivo: {e}")
 
 def tela_manutencao(user):
     st.markdown("### 🛠️ Manutenção de Frases")
-    st.caption("Edite textos, corrija empresas ou exclua registros.")
-    
-    q_manutencao = st.text_input("Buscar frase", placeholder="Digite empresa, motivo ou ID...", key="search_manutencao")
-    
+    q = st.text_input("Buscar frase", placeholder="Digite empresa, motivo ou ID...", key="search_manut")
     query = supabase.table("frases").select("*").order("id", desc=True)
-    if q_manutencao:
-        if q_manutencao.isdigit():
-             query = query.eq("id", q_manutencao)
-        else:
-             filtro = f"empresa.ilike.%{q_manutencao}%,motivo.ilike.%{q_manutencao}%"
-             query = query.or_(filtro)
-        st.info(f"Resultados da busca por: '{q_manutencao}'")
+    if q:
+        if q.isdigit(): query = query.eq("id", q)
+        else: query = query.or_(f"empresa.ilike.%{q}%,motivo.ilike.%{q}%")
+        st.info(f"Resultados para: '{q}'")
     else:
         query = query.limit(4)
-        st.caption("Mostrando as 4 últimas adições.")
+        st.caption("4 últimas adições.")
         
     items = query.execute().data
-    
-    if not items and q_manutencao:
-        st.warning("Nenhum item encontrado.")
+    if not items and q: st.warning("Nada encontrado.")
     
     for item in items:
         with st.expander(f"#{item['id']} | {item['empresa']} - {item['motivo']}"):
             with st.form(key=f"form_edit_{item['id']}"):
                 c1, c2, c3 = st.columns([1.5, 1.5, 1])
-                new_empresa = c1.text_input("Empresa", value=item['empresa'])
-                new_motivo = c2.text_input("Motivo", value=item['motivo'])
-                new_doc = c3.text_input("Documento", value=item['documento'])
-                new_conteudo = st.text_area("Conteúdo da Frase", value=item['conteudo'], height=150)
-                
+                ne = c1.text_input("Empresa", value=item['empresa'])
+                nm = c2.text_input("Motivo", value=item['motivo'])
+                nd = c3.text_input("Doc", value=item['documento'])
+                nc = st.text_area("Conteúdo", value=item['conteudo'], height=150)
                 st.write("---")
-                col_save, col_del = st.columns([1, 0.25])
-                
-                if col_save.form_submit_button("💾 Salvar Alterações", type="primary"):
-                    try:
-                        supabase.table("frases").update({
-                            "empresa": padronizar(new_empresa),
-                            "motivo": padronizar(new_motivo),
-                            "documento": padronizar(new_doc),
-                            "conteudo": padronizar(new_conteudo),
-                            "revisado_por": user['username'],
-                            "data_revisao": datetime.now().strftime('%Y-%m-%d')
-                        }).eq("id", item['id']).execute()
-                        registrar_log(user['username'], "Editar Frase", f"ID: {item['id']} - {new_empresa}")
-                        st.success("Alterações salvas!")
-                        time.sleep(1)
-                        st.cache_data.clear()
-                        st.rerun()
-                    except Exception as e: st.error(f"Erro: {e}")
-
-                if col_del.form_submit_button("🗑️ Excluir"):
-                    try:
-                        supabase.table("frases").delete().eq("id", item['id']).execute()
-                        registrar_log(user['username'], "Excluir Frase", f"ID: {item['id']} - {item['empresa']}")
-                        st.toast(f"Item {item['id']} excluído!")
-                        time.sleep(1)
-                        st.cache_data.clear()
-                        st.rerun()
-                    except: st.error("Erro ao excluir.")
+                cs, cd = st.columns([1, 0.25])
+                if cs.form_submit_button("💾 Salvar", type="primary"):
+                    supabase.table("frases").update({"empresa": ne, "motivo": nm, "documento": nd, "conteudo": nc, "revisado_por": user['username']}).eq("id", item['id']).execute()
+                    registrar_log(user['username'], "Editar Frase", f"ID: {item['id']}"); st.success("Salvo!"); time.sleep(1); st.cache_data.clear(); st.rerun()
+                if cd.form_submit_button("🗑️ Excluir"):
+                    supabase.table("frases").delete().eq("id", item['id']).execute()
+                    registrar_log(user['username'], "Excluir Frase", f"ID: {item['id']}"); st.toast("Excluído!"); time.sleep(1); st.cache_data.clear(); st.rerun()
 
 def tela_admin(user_logado):
     st.markdown("### ⚙️ Painel Administrativo")
-    tab_users, tab_logs, tab_backup = st.tabs(["👥 Gerir Usuários", "📜 Logs do Sistema", "💾 Backup"])
+    
+    # ADICIONADA ABA "ZONA DE PERIGO"
+    tab_users, tab_logs, tab_backup, tab_danger = st.tabs(["👥 Usuários", "📜 Logs", "💾 Backup", "🚨 Zona de Perigo"])
     
     with tab_users:
-        st.info("Edite permissões ou remova acesso de colaboradores.")
-        users_res = supabase.table("usuarios").select("*").order("id").execute()
-        users = users_res.data
+        st.info("Gestão de Acessos.")
+        users = supabase.table("usuarios").select("*").order("id").execute().data
         for u in users:
             with st.container(border=True):
-                c1, c2, c3 = st.columns([0.5, 3, 1])
-                c1.write("👤")
-                c2.write(f"**{u['username']}** {'(Admin)' if u.get('admin') else ''}")
-                with st.expander("Editar / Excluir"):
-                    with st.form(key=f"edit_user_{u['id']}"):
-                        new_pass = st.text_input("Nova Senha", value=u['senha'], type="password")
-                        is_admin = st.checkbox("É Administrador?", value=u.get('admin', False))
-                        c_save, c_del = st.columns(2)
-                        if c_save.form_submit_button("💾 Atualizar", use_container_width=True):
-                            supabase.table("usuarios").update({"senha": new_pass, "admin": is_admin}).eq("id", u['id']).execute()
-                            registrar_log(user_logado['username'], "Editar Usuário", f"Alterou usuário {u['username']}")
-                            st.success("Atualizado!"); time.sleep(1); st.rerun()
-                        if c_del.form_submit_button("🗑️ Excluir", use_container_width=True):
-                            if u['username'] == user_logado['username']: st.error("Você não pode excluir a si mesmo!")
+                c1, c2 = st.columns([3, 1])
+                c1.write(f"👤 **{u['username']}** {'(Admin)' if u.get('admin') else ''}")
+                with st.expander("Editar"):
+                    with st.form(key=f"eu_{u['id']}"):
+                        np = st.text_input("Senha", value=u['senha'], type="password")
+                        ia = st.checkbox("Admin", value=u.get('admin', False))
+                        if st.form_submit_button("Atualizar"):
+                            supabase.table("usuarios").update({"senha": np, "admin": ia}).eq("id", u['id']).execute()
+                            registrar_log(user_logado['username'], "Editar Usuário", u['username']); st.rerun()
+                        if st.form_submit_button("Excluir"):
+                            if u['username'] == user_logado['username']: st.error("Não podes excluir-te a ti mesmo.")
                             else:
                                 supabase.table("usuarios").delete().eq("id", u['id']).execute()
-                                registrar_log(user_logado['username'], "Excluir Usuário", f"Removeu usuário {u['username']}")
-                                st.warning("Usuário removido."); time.sleep(1); st.rerun()
-
-        with st.expander("➕ Cadastrar Novo Usuário", expanded=False):
-            with st.form("new_user"):
-                nu = st.text_input("Nome de Usuário"); ns = st.text_input("Senha", type="password"); na = st.checkbox("Conceder Acesso Admin")
-                if st.form_submit_button("Criar Usuário"):
-                    if nu and ns:
-                        try:
-                            supabase.table("usuarios").insert({"username": nu, "senha": ns, "admin": na}).execute()
-                            registrar_log(user_logado['username'], "Criar Usuário", f"Criou {nu}")
-                            st.success("Criado com sucesso!"); time.sleep(1); st.rerun()
-                        except: st.error("Erro ou usuário já existe.")
+                                registrar_log(user_logado['username'], "Excluir Usuário", u['username']); st.rerun()
+        
+        with st.expander("➕ Novo Usuário"):
+            with st.form("nu"):
+                nu = st.text_input("User"); ns = st.text_input("Pass", type="password"); na = st.checkbox("Admin")
+                if st.form_submit_button("Criar"):
+                    try: 
+                        supabase.table("usuarios").insert({"username": nu, "senha": ns, "admin": na}).execute()
+                        st.success("Criado!"); st.rerun()
+                    except: st.error("Erro.")
 
     with tab_logs:
-        st.caption("Histórico das últimas 50 ações realizadas no sistema.")
-        if st.button("🔄 Atualizar Logs"): st.rerun()
+        if st.button("Atualizar Logs"): st.rerun()
         try:
-            logs_res = supabase.table("logs").select("*").order("id", desc=True).limit(50).execute()
-            logs = logs_res.data
-            if logs: st.dataframe(logs, column_config={"data_hora": "Data/Hora", "usuario": "Quem fez", "acao": "Ação", "detalhe": "Detalhes"}, use_container_width=True, hide_index=True)
-            else: st.info("Nenhum registro de log encontrado.")
-        except: st.error("Tabela 'logs' não encontrada.")
+            logs = supabase.table("logs").select("*").order("id", desc=True).limit(50).execute().data
+            if logs: st.dataframe(logs, use_container_width=True, hide_index=True)
+        except: st.error("Sem logs.")
 
     with tab_backup:
-        st.info("Baixe os dados completos para segurança ou relatórios.")
-        c_bkp1, c_bkp2 = st.columns(2)
-        with c_bkp1:
-            st.markdown("#### 📚 Frases")
-            dados_frases = supabase.table("frases").select("*").execute().data
-            csv_frases = converter_para_csv(dados_frases)
-            st.download_button(label="⬇️ Baixar Frases (CSV)", data=csv_frases, file_name=f"backup_frases_{datetime.now().strftime('%Y%m%d')}.csv", mime="text/csv", use_container_width=True)
-            st.caption(f"{len(dados_frases)} registros.")
-        with c_bkp2:
-            st.markdown("#### 👥 Usuários")
-            dados_users = supabase.table("usuarios").select("*").execute().data
-            csv_users = converter_para_csv(dados_users)
-            st.download_button(label="⬇️ Baixar Usuários (CSV)", data=csv_users, file_name=f"backup_usuarios_{datetime.now().strftime('%Y%m%d')}.csv", mime="text/csv", use_container_width=True)
-            st.caption(f"{len(dados_users)} registros.")
+        c1, c2 = st.columns(2)
+        with c1:
+            df = supabase.table("frases").select("*").execute().data
+            st.download_button("⬇️ Backup Frases", data=converter_para_csv(df), file_name="frases.csv", mime="text/csv", use_container_width=True)
+        with c2:
+            du = supabase.table("usuarios").select("*").execute().data
+            st.download_button("⬇️ Backup Usuários", data=converter_para_csv(du), file_name="users.csv", mime="text/csv", use_container_width=True)
+
+    # --- ABA ZONA DE PERIGO (NOVA) ---
+    with tab_danger:
+        st.markdown("""
+        <div class="danger-zone">
+            <h3 style="color:#b91c1c; margin-top:0;">☢️ Reset do Sistema</h3>
+            <p style="color:#7f1d1d;">Estas ações são <b>irreversíveis</b>. Todos os dados selecionados serão apagados permanentemente.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.write("")
+        
+        col_danger1, col_danger2 = st.columns(2)
+        
+        # OPÇÃO 1: Zerar Frases
+        with col_danger1:
+            st.markdown("#### 🗑️ Excluir Todas as Frases")
+            st.caption("Remove todo o conteúdo da biblioteca. O histórico de logs e usuários será mantido.")
+            confirm_phrases = st.text_input("Digite 'CONFIRMAR' para liberar:", key="confirm_phrases")
+            
+            btn_disabled = confirm_phrases != "CONFIRMAR"
+            if st.button("💥 APAGAR TODAS AS FRASES", type="primary", disabled=btn_disabled, use_container_width=True):
+                try:
+                    # Supabase delete all trick: delete where ID is not 0
+                    supabase.table("frases").delete().neq("id", 0).execute()
+                    registrar_log(user_logado['username'], "RESET FRASES", "Apagou todas as frases do sistema")
+                    st.success("Todas as frases foram removidas com sucesso.")
+                    time.sleep(2)
+                    st.cache_data.clear()
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erro ao tentar zerar: {e}")
+
+        # OPÇÃO 2: Zerar Usuários (Factory Reset)
+        with col_danger2:
+            st.markdown("#### 🏭 Reset de Usuários")
+            st.caption("Remove todos os usuários, EXCETO você. Logs serão mantidos.")
+            confirm_users = st.text_input("Digite 'RESETAR TUDO' para liberar:", key="confirm_users")
+            
+            btn_users_disabled = confirm_users != "RESETAR TUDO"
+            if st.button("💥 APAGAR OUTROS USUÁRIOS", type="primary", disabled=btn_users_disabled, use_container_width=True):
+                try:
+                    # Apaga todos cujo username não é o seu
+                    supabase.table("usuarios").delete().neq("username", user_logado['username']).execute()
+                    registrar_log(user_logado['username'], "RESET USUARIOS", "Apagou todos os outros usuários")
+                    st.success("Todos os outros usuários foram removidos.")
+                    time.sleep(2)
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erro ao tentar zerar usuários: {e}")
 
 # ==============================================================================
 # 6. CONTROLE DE FLUXO
@@ -475,27 +430,18 @@ if not st.session_state["usuario_logado"]:
                     st.session_state["usuario_logado"] = user
                     cookie_manager.set("gupy_token", u, expires_at=datetime.now() + timedelta(days=7))
                     st.rerun()
-                else:
-                    st.error("Credenciais inválidas.")
+                else: st.error("Credenciais inválidas.")
 else:
     user = st.session_state["usuario_logado"]
-    
     c_logo, c_nav, c_user = st.columns([1, 4, 1], vertical_alignment="center")
-    with c_logo:
-        st.image(LOGO_URL, width=80)
-    
+    with c_logo: st.image(LOGO_URL, width=80)
     with c_nav:
         opcoes = ["Biblioteca", "Adicionar", "Manutenção"]
-        if user.get('admin') == True:
-            opcoes.append("Admin")
-        selecao = st.radio("Navegação", opcoes, horizontal=True, label_visibility="collapsed")
-    
+        if user.get('admin') == True: opcoes.append("Admin")
+        selecao = st.radio("Nav", opcoes, horizontal=True, label_visibility="collapsed")
     with c_user:
-        if st.button("Sair", key="logout_btn"):
-            cookie_manager.delete("gupy_token")
-            st.session_state["usuario_logado"] = None
-            st.rerun()
-
+        if st.button("Sair"):
+            cookie_manager.delete("gupy_token"); st.session_state["usuario_logado"] = None; st.rerun()
     st.divider()
 
     if selecao == "Biblioteca": tela_biblioteca(user)
@@ -503,4 +449,4 @@ else:
     elif selecao == "Manutenção": tela_manutencao(user)
     elif selecao == "Admin": tela_admin(user)
 
-    st.markdown("<br><div style='text-align:center; color:#CCC; font-size:0.8rem'>Gupy Frases v3.4 • Validação de Duplicatas</div>", unsafe_allow_html=True)
+    st.markdown("<br><div style='text-align:center; color:#CCC; font-size:0.8rem'>Gupy Frases v3.5 • Zona de Perigo Ativa</div>", unsafe_allow_html=True)
