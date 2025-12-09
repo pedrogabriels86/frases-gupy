@@ -101,7 +101,15 @@ st.markdown("""
         color: #3182ce;
     }
 
-    .danger-zone { border: 1px solid #ff4b4b; background-color: #fff5f5; padding: 20px; border-radius: 10px; color: #7f1d1d; }
+    .danger-zone { 
+        border: 1px solid #fee2e2; 
+        background-color: #fef2f2; 
+        padding: 20px; 
+        border-radius: 10px; 
+        color: #991b1b; 
+        margin-bottom: 20px;
+    }
+    
     .filter-label { font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 5px; }
     .footer { text-align: center; color: #CCC; font-size: 0.8rem; margin-top: 50px; border-top: 1px solid #EEE; padding-top: 20px; }
 </style>
@@ -354,6 +362,7 @@ def tela_manutencao(user):
 def tela_admin(user_logado):
     st.markdown("### ⚙️ Administração")
     tab_users, tab_logs, tab_bkp, tab_danger = st.tabs(["👥 Usuários", "📜 Logs", "💾 Backup", "🚨 Danger"])
+    
     with tab_users:
         users = supabase.table("usuarios").select("*").order("id").execute().data
         for u in users:
@@ -382,10 +391,37 @@ def tela_admin(user_logado):
         st.download_button("⬇️ Backup CSV", data=converter_para_csv(df), file_name="backup.csv", mime="text/csv")
 
     with tab_danger:
-        st.markdown('<div class="danger-zone"><h4>Zona de Perigo</h4></div>', unsafe_allow_html=True)
-        if st.button("💥 APAGAR TUDO", type="primary") and st.text_input("Digite CONFIRMAR") == "CONFIRMAR":
-            supabase.table("frases").delete().neq("id", 0).execute()
-            registrar_log(user_logado['username'], "RESET", "Apagou tudo"); st.success("Feito."); time.sleep(2); st.rerun()
+        st.markdown('<div class="danger-zone"><h4 style="margin-top:0;">🚨 Zona de Perigo</h4><p>Ações irreversíveis.</p></div>', unsafe_allow_html=True)
+        st.write("")
+        
+        c_danger1, c_danger2 = st.columns(2)
+        
+        with c_danger1:
+            with st.container(border=True):
+                st.markdown("#### 🗑️ Banco de Frases")
+                st.caption("Atenção: Isso irá apagar TODAS as frases do sistema.")
+                check_phrase = st.text_input("Digite 'CONFIRMAR' para liberar:", key="check_p")
+                
+                if st.button("💥 APAGAR TODAS AS FRASES", type="primary", use_container_width=True, disabled=(check_phrase != "CONFIRMAR")):
+                    supabase.table("frases").delete().neq("id", 0).execute()
+                    registrar_log(user_logado['username'], "RESET TOTAL", "Apagou todas as frases")
+                    st.success("Banco de frases limpo com sucesso!")
+                    time.sleep(2)
+                    st.rerun()
+
+        with c_danger2:
+            with st.container(border=True):
+                st.markdown("#### 👥 Banco de Usuários")
+                st.caption("Apaga todos os usuários, EXCETO você.")
+                check_user = st.text_input("Digite 'RESETAR USERS' para liberar:", key="check_u")
+                
+                if st.button("💥 APAGAR OUTROS USUÁRIOS", type="primary", use_container_width=True, disabled=(check_user != "RESETAR USERS")):
+                    # Apaga todos que não sejam o usuário atual
+                    supabase.table("usuarios").delete().neq("username", user_logado['username']).execute()
+                    registrar_log(user_logado['username'], "RESET USERS", "Apagou outros usuários")
+                    st.success("Outros usuários removidos!")
+                    time.sleep(2)
+                    st.rerun()
 
 # ==============================================================================
 # 6. CONTROLE DE SESSÃO E LOGIN
