@@ -38,7 +38,7 @@ favicon = carregar_favicon(FAVICON_URL)
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. ESTILO CSS (PADRONIZAÇÃO VISUAL)
+# 2. ESTILO CSS (VISUAL LIMPO E SEGURO)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -57,8 +57,7 @@ st.markdown("""
         border: 1px solid #f0f2f6;
     }
     
-    /* --- CLASSE MÁGICA PARA O TEXTO DA FRASE --- */
-    /* Aqui definimos o visual da frase uma única vez */
+    /* --- CLASSE PARA O TEXTO DA FRASE (PADRONIZADO) --- */
     .frase-box {
         background-color: #f8f9fa;       /* Fundo cinza bem claro */
         border: 1px solid #e9ecef;       /* Borda sutil */
@@ -180,7 +179,7 @@ def buscar_frases_final(termo=None, empresa_filtro="Todas", doc_filtro="Todos"):
     return query.limit(50 if termo else 8).execute().data or []
 
 # ==============================================================================
-# 4. COMPONENTES VISUAIS (CORRIGIDO)
+# 4. COMPONENTES VISUAIS (USANDO CLASSE CSS)
 # ==============================================================================
 
 def card_frase(frase):
@@ -192,9 +191,7 @@ def card_frase(frase):
         with c_head2:
              st.markdown(f"<div style='text-align:right; font-size:0.8em; color:#CCC'>#{frase['id']}</div>", unsafe_allow_html=True)
         
-        # --- HTML VISUAL ---
-        # Agora usamos apenas a classe 'frase-box' que definimos no CSS lá em cima.
-        # Isso evita erros de aspas quebradas.
+        # --- TEXTO SEGURO COM CSS EXTERNO ---
         texto_seguro = html.escape(frase['conteudo'])
         
         st.markdown(f"""
@@ -203,7 +200,7 @@ def card_frase(frase):
         </div>
         """, unsafe_allow_html=True)
         
-        # --- RODAPÉ COM BOTÃO ---
+        # --- RODAPÉ ---
         c_footer1, c_footer2 = st.columns([3, 1], vertical_alignment="center")
         
         with c_footer1:
@@ -437,4 +434,4 @@ else:
     elif selecao == "Manutenção": tela_manutencao(user)
     elif selecao == "Admin": tela_admin(user)
     
-    st.markdown('<div class="footer">Desenvolvido com Streamlit • Gupy Frases v2.7</div>', unsafe_allow_html=True)
+    st.markdown('<div class="footer">Desenvolvido por Pedro Gabriel</div>', unsafe_allow_html=True)
