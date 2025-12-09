@@ -18,8 +18,7 @@ def carregar_favicon(url):
         response = requests.get(url, timeout=2)
         if response.status_code == 200:
             return Image.open(io.BytesIO(response.content))
-    except:
-        return "💙"
+    except: return "💙"
     return "💙"
 
 FAVICON_URL = "https://urmwvabkikftsefztadb.supabase.co/storage/v1/object/public/imagens/favicon.png"
@@ -35,40 +34,18 @@ st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-    
     .block-container { padding-top: 1.5rem !important; }
     header { visibility: hidden; }
-    
     div[data-testid="stVerticalBlockBorderWrapper"] {
-        border-radius: 12px !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        background-color: white;
+        border-radius: 12px !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05); background-color: white;
     }
-    
-    div.stButton > button {
-        border-radius: 8px;
-        font-weight: 600;
-    }
-    
+    div.stButton > button { border-radius: 8px; font-weight: 600; }
     .stCodeBlock { margin-top: -10px; }
-    
     .stRadio > div[role="radiogroup"] {
-        background: white;
-        padding: 10px;
-        border-radius: 10px;
-        border: 1px solid #e0e0e0;
-        display: flex;
-        justify-content: center;
+        background: white; padding: 10px; border-radius: 10px; border: 1px solid #e0e0e0; display: flex; justify-content: center;
     }
-    
-    .danger-zone {
-        border: 1px solid #ff4b4b;
-        background-color: #fff5f5;
-        padding: 20px;
-        border-radius: 10px;
-    }
+    .danger-zone { border: 1px solid #ff4b4b; background-color: #fff5f5; padding: 20px; border-radius: 10px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -98,9 +75,7 @@ def recuperar_usuario_cookie(username):
 def registrar_log(usuario, acao, detalhe):
     try:
         supabase.table("logs").insert({
-            "usuario": usuario, 
-            "acao": acao, 
-            "detalhe": detalhe, 
+            "usuario": usuario, "acao": acao, "detalhe": detalhe, 
             "data_hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }).execute()
     except: pass
@@ -117,291 +92,125 @@ def converter_para_csv(dados):
 def buscar_frases_otimizado(termo=None, empresa_filtro="Todas"):
     query = supabase.table("frases").select("*").order("id", desc=True)
     if termo:
-        filtro_texto = f"conteudo.ilike.%{termo}%,empresa.ilike.%{termo}%,motivo.ilike.%{termo}%,revisado_por.ilike.%{termo}%,documento.ilike.%{termo}%"
-        query = query.or_(filtro_texto)
+        query = query.or_(f"conteudo.ilike.%{termo}%,empresa.ilike.%{termo}%,motivo.ilike.%{termo}%,revisado_por.ilike.%{termo}%,documento.ilike.%{termo}%")
     if empresa_filtro != "Todas":
         query = query.eq("empresa", empresa_filtro)
-    
-    limite = 50 if termo else 4
-    return query.limit(limite).execute().data or []
+    return query.limit(50 if termo else 4).execute().data or []
 
 @st.cache_data(ttl=300)
 def listar_empresas_unicas():
     try:
         data = supabase.table("frases").select("empresa").execute().data
-        empresas = sorted(list(set([d['empresa'] for d in data])))
-        return ["Todas"] + empresas
+        return ["Todas"] + sorted(list(set([d['empresa'] for d in data])))
     except: return ["Todas"]
 
-def padronizar(texto):
-    return str(texto).strip() if texto else ""
-
-def gerar_assinatura(empresa, motivo, conteudo):
-    t1 = padronizar(empresa).lower()
-    t2 = padronizar(motivo).lower()
-    t3 = padronizar(conteudo).lower()
-    return f"{t1}|{t2}|{t3}"
+def padronizar(texto): return str(texto).strip() if texto else ""
+def gerar_assinatura(e, m, c): return f"{padronizar(e).lower()}|{padronizar(m).lower()}|{padronizar(c).lower()}"
 
 # ==============================================================================
-# 4. COMPONENTES VISUAIS
+# 4. COMPONENTES VISUAIS E TELAS
 # ==============================================================================
-
 def card_frase(frase):
     with st.container(border=True):
-        c_head1, c_head2 = st.columns([3, 1])
-        with c_head1:
-            st.markdown(f"**{frase['empresa']}**")
-            st.caption(f"{frase['motivo']} • {frase['documento']}")
-        with c_head2:
-             st.markdown(f"<div style='text-align:right; font-size:0.8em; color:#888'>#{frase['id']}</div>", unsafe_allow_html=True)
+        c1, c2 = st.columns([3, 1])
+        c1.markdown(f"**{frase['empresa']}**"); c1.caption(f"{frase['motivo']} • {frase['documento']}")
+        c2.markdown(f"<div style='text-align:right; font-size:0.8em; color:#888'>#{frase['id']}</div>", unsafe_allow_html=True)
         st.code(frase['conteudo'], language=None)
-        st.markdown(f"""
-        <div style='display:flex; justify-content:space-between; font-size:0.75rem; color:#666; margin-top:5px;'>
-            <span>✍️ {frase.get('revisado_por', 'Sistema')}</span>
-            <span>📅 {frase.get('data_revisao', '-')}</span>
-        </div>
-        """, unsafe_allow_html=True)
-
-# ==============================================================================
-# 5. TELAS DO SISTEMA
-# ==============================================================================
+        st.markdown(f"<div style='display:flex; justify-content:space-between; font-size:0.75rem; color:#666; margin-top:5px;'><span>✍️ {frase.get('revisado_por', 'Sistema')}</span><span>📅 {frase.get('data_revisao', '-')}</span></div>", unsafe_allow_html=True)
 
 def tela_biblioteca(user):
-    st.markdown("### 📂 Biblioteca de Frases")
-    
+    st.markdown("### 📂 Biblioteca")
     with st.container():
         c1, c2 = st.columns([3, 1])
         with c1:
-            # BUSCA PADRÃO (ESTÁVEL)
             termo = st.text_input("🔍 Pesquisar", placeholder="Busque por Usuário, Empresa... (Enter para buscar)", label_visibility="collapsed")
-        
-        lista_empresas = listar_empresas_unicas()
-        empresa = c2.selectbox("Empresa", lista_empresas, label_visibility="collapsed")
-
-    with st.spinner("Buscando..."):
-        dados = buscar_frases_otimizado(termo if termo else None, empresa)
-
-    if not termo and empresa == "Todas":
-        st.caption("🔥 Destaques: Mostrando as 4 frases mais recentes.")
-    elif termo:
-        st.caption(f"🔎 Resultados encontrados: {len(dados)}")
+        empresa = c2.selectbox("Empresa", listar_empresas_unicas(), label_visibility="collapsed")
     
-    st.divider()
-
-    if not dados:
-        st.info("Nenhuma frase encontrada com esses filtros.")
-        return
-
-    col1, col2 = st.columns(2)
-    for i, frase in enumerate(dados):
-        with (col1 if i % 2 == 0 else col2):
-            card_frase(frase)
+    with st.spinner("..."): dados = buscar_frases_otimizado(termo if termo else None, empresa)
+    if not termo and empresa=="Todas": st.caption("🔥 4 mais recentes")
+    
+    if not dados: st.info("Nada encontrado.")
+    else:
+        c1, c2 = st.columns(2)
+        for i, f in enumerate(dados):
+            with (c1 if i%2==0 else c2): card_frase(f)
 
 def tela_adicionar(user):
     st.markdown("### ➕ Nova Frase")
-    tab_manual, tab_import = st.tabs(["📝 Cadastro Manual", "📗 Importar Excel"])
-    
-    with tab_manual:
-        st.info("Preencha os dados abaixo para cadastrar um novo modelo.")
-        with st.container(border=True):
-            with st.form("form_add", clear_on_submit=True):
-                c1, c2 = st.columns(2)
-                ne = c1.text_input("Empresa Solicitante", placeholder="Ex: Gupy Tech")
-                nd = c2.text_input("Tipo de Documento", placeholder="Ex: Carta Recusa")
-                nm = st.text_input("Motivo", placeholder="Ex: Baixa Qualificação Técnica")
-                nc = st.text_area("Texto da Frase (Conteúdo)", height=150)
-                submitted = st.form_submit_button("💾 Salvar Frase", type="primary", use_container_width=True)
-                
-                if submitted:
-                    if not ne or not nm or not nc:
-                        st.warning("Preencha todos os campos obrigatórios.")
-                    else:
-                        try:
-                            check = supabase.table("frases").select("id").eq("conteudo", padronizar(nc)).execute()
-                            if check.data:
-                                st.warning("Atenção: Já existe uma frase com este conteúdo exato.")
-                            else:
-                                supabase.table("frases").insert({
-                                    "empresa": padronizar(ne), "documento": padronizar(nd), "motivo": padronizar(nm), "conteudo": padronizar(nc), 
-                                    "revisado_por": user['username'], "data_revisao": datetime.now().strftime('%Y-%m-%d')
-                                }).execute()
-                                registrar_log(user['username'], "Adicionar Frase", f"Empresa: {ne} - Motivo: {nm}")
-                                st.success("Frase salva com sucesso!"); time.sleep(1); st.cache_data.clear(); st.rerun()
-                        except Exception as e: st.error(f"Erro ao salvar: {e}")
-
-    with tab_import:
-        st.info("Carregue uma planilha Excel (.xlsx).")
-        with st.expander("📌 Ver colunas da planilha"):
-            st.markdown("**Colunas:** `empresa`, `motivo`, `conteudo`, `documento` (opc), `usuario` (opc), `data` (opc).")
-        
-        arquivo = st.file_uploader("Selecione o arquivo Excel", type=["xlsx"])
-        if arquivo:
-            if st.button("🚀 Processar e Importar", type="primary"):
-                try:
-                    df = pd.read_excel(arquivo)
-                    df.columns = [c.lower().strip() for c in df.columns]
-                    required_cols = {'empresa', 'motivo', 'conteudo'}
-                    if not required_cols.issubset(df.columns):
-                        st.error(f"Erro: Faltam colunas obrigatórias: {', '.join(required_cols)}")
-                    else:
-                        with st.spinner("Analisando duplicatas..."):
-                            res_existentes = supabase.table("frases").select("empresa, motivo, conteudo").execute()
-                            assinaturas_existentes = set()
-                            for item in res_existentes.data:
-                                assinaturas_existentes.add(gerar_assinatura(item['empresa'], item['motivo'], item['conteudo']))
-
-                        progress = st.progress(0); total = len(df); sucesso = 0; duplicados = 0; erros = 0
-                        
-                        for i, row in df.iterrows():
-                            try:
-                                el = padronizar(row['empresa']); ml = padronizar(row['motivo']); cl = padronizar(row['conteudo'])
-                                ass_atual = gerar_assinatura(el, ml, cl)
-                                if ass_atual in assinaturas_existentes: duplicados += 1
-                                else:
-                                    user_excel = row.get('usuario')
-                                    user_final = str(user_excel).strip() if pd.notnull(user_excel) and str(user_excel).strip() != "" else user['username']
-                                    data_excel = row.get('data')
-                                    data_final = datetime.now().strftime('%Y-%m-%d')
-                                    if pd.notnull(data_excel):
-                                        try: data_final = pd.to_datetime(data_excel).strftime('%Y-%m-%d')
-                                        except: pass
-
-                                    supabase.table("frases").insert({
-                                        "empresa": el, "documento": padronizar(row.get('documento', 'Geral')), 
-                                        "motivo": ml, "conteudo": cl,
-                                        "revisado_por": user_final, "data_revisao": data_final
-                                    }).execute()
-                                    assinaturas_existentes.add(ass_atual); sucesso += 1
-                            except: erros += 1
-                            progress.progress((i + 1) / total)
-                        
-                        st.success("Concluído!")
-                        c1, c2, c3 = st.columns(3)
-                        c1.metric("✅", sucesso); c2.metric("🚫", duplicados); c3.metric("⚠️", erros)
-                        if sucesso > 0:
-                            registrar_log(user['username'], "Importação em Massa", f"Importou {sucesso} itens.")
-                            time.sleep(4); st.cache_data.clear(); st.rerun()
-                except Exception as e: st.error(f"Erro ao ler arquivo: {e}")
+    t1, t2 = st.tabs(["Manual", "Excel"])
+    with t1:
+        with st.form("add"):
+            ne=st.text_input("Empresa"); nd=st.text_input("Doc"); nm=st.text_input("Motivo"); nc=st.text_area("Texto")
+            if st.form_submit_button("Salvar"):
+                supabase.table("frases").insert({"empresa":ne,"documento":nd,"motivo":nm,"conteudo":nc,"revisado_por":user['username'],"data_revisao":datetime.now().strftime('%Y-%m-%d')}).execute()
+                registrar_log(user['username'], "Add", ne); st.success("Salvo!"); time.sleep(1); st.rerun()
+    with t2:
+        arq = st.file_uploader("Excel", type=["xlsx"])
+        if arq and st.button("Importar"):
+            try:
+                df = pd.read_excel(arq); df.columns = [c.lower().strip() for c in df.columns]
+                sucesso = 0
+                for i, row in df.iterrows():
+                    try:
+                        us = str(row.get('usuario')).strip() if pd.notnull(row.get('usuario')) else user['username']
+                        dt = pd.to_datetime(row.get('data')).strftime('%Y-%m-%d') if pd.notnull(row.get('data')) else datetime.now().strftime('%Y-%m-%d')
+                        supabase.table("frases").insert({"empresa":row['empresa'],"motivo":row['motivo'],"conteudo":row['conteudo'],"documento":row.get('documento','Geral'),"revisado_por":us,"data_revisao":dt}).execute()
+                        sucesso += 1
+                    except: pass
+                st.success(f"Importado {sucesso} itens!"); time.sleep(2); st.rerun()
+            except Exception as e: st.error(f"Erro no Excel: {e}")
 
 def tela_manutencao(user):
-    st.markdown("### 🛠️ Manutenção de Frases")
-    q = st.text_input("Buscar frase", placeholder="Digite empresa, motivo ou ID...", key="search_manut")
+    st.markdown("### 🛠️ Manutenção")
+    q = st.text_input("Buscar ID ou Texto")
     query = supabase.table("frases").select("*").order("id", desc=True)
-    if q:
-        if q.isdigit(): query = query.eq("id", q)
-        else: query = query.or_(f"empresa.ilike.%{q}%,motivo.ilike.%{q}%")
-        st.info(f"Resultados para: '{q}'")
-    else:
-        query = query.limit(4)
-        st.caption("4 últimas adições.")
-        
+    query = query.or_(f"empresa.ilike.%{q}%,motivo.ilike.%{q}%") if q else query.limit(4)
     items = query.execute().data
-    if not items and q: st.warning("Nada encontrado.")
-    
     for item in items:
-        with st.expander(f"#{item['id']} | {item['empresa']} - {item['motivo']}"):
-            with st.form(key=f"form_edit_{item['id']}"):
-                c1, c2, c3 = st.columns([1.5, 1.5, 1])
-                ne = c1.text_input("Empresa", value=item['empresa'])
-                nm = c2.text_input("Motivo", value=item['motivo'])
-                nd = c3.text_input("Doc", value=item['documento'])
-                nc = st.text_area("Conteúdo", value=item['conteudo'], height=150)
-                st.write("---")
-                cs, cd = st.columns([1, 0.25])
-                if cs.form_submit_button("💾 Salvar", type="primary"):
-                    supabase.table("frases").update({"empresa": ne, "motivo": nm, "documento": nd, "conteudo": nc, "revisado_por": user['username']}).eq("id", item['id']).execute()
-                    registrar_log(user['username'], "Editar Frase", f"ID: {item['id']}"); st.success("Salvo!"); time.sleep(1); st.cache_data.clear(); st.rerun()
-                if cd.form_submit_button("🗑️ Excluir"):
-                    supabase.table("frases").delete().eq("id", item['id']).execute()
-                    registrar_log(user['username'], "Excluir Frase", f"ID: {item['id']}"); st.toast("Excluído!"); time.sleep(1); st.cache_data.clear(); st.rerun()
+        with st.expander(f"#{item['id']} {item['empresa']}"):
+            if st.button(f"Excluir {item['id']}"):
+                supabase.table("frases").delete().eq("id", item['id']).execute(); st.rerun()
 
-def tela_admin(user_logado):
-    st.markdown("### ⚙️ Painel Administrativo")
-    tab_users, tab_logs, tab_backup, tab_danger = st.tabs(["👥 Usuários", "📜 Logs", "💾 Backup", "🚨 Zona de Perigo"])
-    
-    with tab_users:
-        st.info("Gestão de Acessos.")
-        users = supabase.table("usuarios").select("*").order("id").execute().data
-        for u in users:
-            with st.container(border=True):
-                c1, c2 = st.columns([3, 1])
-                c1.write(f"👤 **{u['username']}** {'(Admin)' if u.get('admin') else ''}")
-                with st.expander("Editar"):
-                    with st.form(key=f"eu_{u['id']}"):
-                        np = st.text_input("Senha", value=u['senha'], type="password")
-                        ia = st.checkbox("Admin", value=u.get('admin', False))
-                        if st.form_submit_button("Atualizar"):
-                            supabase.table("usuarios").update({"senha": np, "admin": ia}).eq("id", u['id']).execute()
-                            registrar_log(user_logado['username'], "Editar Usuário", u['username']); st.rerun()
-                        if st.form_submit_button("Excluir"):
-                            if u['username'] == user_logado['username']: st.error("Não podes excluir-te a ti mesmo.")
-                            else:
-                                supabase.table("usuarios").delete().eq("id", u['id']).execute()
-                                registrar_log(user_logado['username'], "Excluir Usuário", u['username']); st.rerun()
-        with st.expander("➕ Novo Usuário"):
-            with st.form("nu"):
-                nu = st.text_input("User"); ns = st.text_input("Pass", type="password"); na = st.checkbox("Admin")
-                if st.form_submit_button("Criar"):
-                    try: 
-                        supabase.table("usuarios").insert({"username": nu, "senha": ns, "admin": na}).execute()
-                        st.success("Criado!"); st.rerun()
-                    except: st.error("Erro.")
-
-    with tab_logs:
-        if st.button("Atualizar Logs"): st.rerun()
-        try:
-            logs = supabase.table("logs").select("*").order("id", desc=True).limit(50).execute().data
-            if logs: st.dataframe(logs, use_container_width=True, hide_index=True)
-        except: st.error("Sem logs.")
-
-    with tab_backup:
-        c1, c2 = st.columns(2)
-        with c1:
-            df = supabase.table("frases").select("*").execute().data
-            st.download_button("⬇️ Backup Frases", data=converter_para_csv(df), file_name="frases.csv", mime="text/csv", use_container_width=True)
-        with c2:
-            du = supabase.table("usuarios").select("*").execute().data
-            st.download_button("⬇️ Backup Usuários", data=converter_para_csv(du), file_name="users.csv", mime="text/csv", use_container_width=True)
-
-    with tab_danger:
-        st.markdown("""<div class="danger-zone"><h3 style="color:#b91c1c; margin-top:0;">☢️ Reset do Sistema</h3><p style="color:#7f1d1d;">Ações irreversíveis.</p></div>""", unsafe_allow_html=True); st.write("")
-        col_danger1, col_danger2 = st.columns(2)
-        with col_danger1:
-            st.markdown("#### 🗑️ Excluir Frases"); st.caption("Remove todo o conteúdo.")
-            confirm_phrases = st.text_input("Digite 'CONFIRMAR':", key="confirm_phrases")
-            if st.button("💥 APAGAR TODAS AS FRASES", type="primary", disabled=confirm_phrases!="CONFIRMAR", use_container_width=True):
-                try:
-                    supabase.table("frases").delete().neq("id", 0).execute()
-                    registrar_log(user_logado['username'], "RESET FRASES", "Apagou todas as frases")
-                    st.success("Removido."); time.sleep(2); st.cache_data.clear(); st.rerun()
-                except Exception as e: st.error(f"Erro: {e}")
-        with col_danger2:
-            st.markdown("#### 🏭 Reset Usuários"); st.caption("Remove outros usuários.")
-            confirm_users = st.text_input("Digite 'RESETAR TUDO':", key="confirm_users")
-            if st.button("💥 APAGAR OUTROS USUÁRIOS", type="primary", disabled=confirm_users!="RESETAR TUDO", use_container_width=True):
-                try:
-                    supabase.table("usuarios").delete().neq("username", user_logado['username']).execute()
-                    registrar_log(user_logado['username'], "RESET USUARIOS", "Apagou outros usuários")
-                    st.success("Removido."); time.sleep(2); st.rerun()
-                except Exception as e: st.error(f"Erro: {e}")
+def tela_admin(user):
+    st.markdown("### ⚙️ Admin")
+    t1, t2, t3 = st.tabs(["Users", "Backup", "Danger"])
+    with t1:
+        st.dataframe(supabase.table("usuarios").select("username,admin").execute().data)
+    with t2:
+        df = supabase.table("frases").select("*").execute().data
+        st.download_button("Backup CSV", converter_para_csv(df), "bkp.csv")
+    with t3:
+        if st.text_input("Digite CONFIRMAR") == "CONFIRMAR":
+            if st.button("RESET FRASES", type="primary"):
+                supabase.table("frases").delete().neq("id", 0).execute(); st.success("Zerado!"); st.rerun()
 
 # ==============================================================================
-# 6. CONTROLE DE FLUXO
+# 5. LÓGICA DE AUTENTICAÇÃO (SISTEMA DE COOKIES)
 # ==============================================================================
 
-if "usuario_logado" not in st.session_state: 
+# Inicializa o Cookie Manager com chave fixa para não recarregar
+cookie_manager = stx.CookieManager(key="auth_sys_cookie")
+
+# 1. Recuperar Usuário do Cache (Session State)
+if "usuario_logado" not in st.session_state:
     st.session_state["usuario_logado"] = None
 
-cookie_manager = stx.CookieManager(key="auth_sys")
-
-if not st.session_state["usuario_logado"]:
+# 2. Se não houver usuário na sessão, tentar recuperar do Cookie
+if st.session_state["usuario_logado"] is None:
+    # Tenta ler o cookie 'gupy_token'
     cookies = cookie_manager.get_all()
     token = cookies.get("gupy_token")
+    
     if token:
         user_db = recuperar_usuario_cookie(token)
-        if user_db: st.session_state["usuario_logado"] = user_db
+        if user_db:
+            st.session_state["usuario_logado"] = user_db
+            # Força rerun apenas se encontrou usuario agora
+            # st.rerun() 
 
-if not st.session_state["usuario_logado"]:
+# 3. Decide qual tela mostrar
+if st.session_state["usuario_logado"] is None:
+    # --- TELA DE LOGIN ---
     c1, c2, c3 = st.columns([1, 0.8, 1])
     with c2:
         st.write(""); st.write("")
@@ -410,17 +219,24 @@ if not st.session_state["usuario_logado"]:
             st.markdown("<h3 style='text-align:center'>Login</h3>", unsafe_allow_html=True)
             u = st.text_input("Usuário")
             s = st.text_input("Senha", type="password")
+            
             if st.button("Entrar", type="primary", use_container_width=True):
                 user = verificar_login(u, s)
                 if user:
+                    # Salva no Session State
                     st.session_state["usuario_logado"] = user
+                    # Salva no Cookie (Validade de 7 dias)
                     cookie_manager.set("gupy_token", u, expires_at=datetime.now() + timedelta(days=7))
                     st.rerun()
-                else: st.error("Credenciais inválidas.")
+                else:
+                    st.error("Credenciais inválidas.")
 else:
+    # --- APLICAÇÃO LOGADA ---
     user = st.session_state["usuario_logado"]
     c_logo, c_nav, c_user = st.columns([1, 4, 1], vertical_alignment="center")
+    
     with c_logo: st.image(LOGO_URL, width=80)
+    
     with c_nav:
         opcoes = ["Biblioteca", "Adicionar", "Manutenção"]
         if user.get('admin') == True: opcoes.append("Admin")
@@ -428,14 +244,12 @@ else:
     
     with c_user:
         if st.button("Sair"):
-            # LÓGICA SEGURA DE LOGOUT
-            try:
-                cookie_manager.delete("gupy_token")
-            except:
-                pass # Se o cookie não existir, segue em frente
+            # Logout seguro (tenta apagar cookie, se não der, ignora)
+            try: cookie_manager.delete("gupy_token")
+            except: pass
             st.session_state["usuario_logado"] = None
             st.rerun()
-
+            
     st.divider()
 
     if selecao == "Biblioteca": tela_biblioteca(user)
