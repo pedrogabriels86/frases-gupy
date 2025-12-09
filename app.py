@@ -9,16 +9,6 @@ import pandas as pd
 from PIL import Image
 import extra_streamlit_components as stx
 
-# --- LOGICA DE IMPORTAÇÃO SEGURA (Blindagem) ---
-try:
-    from st_keyup import st_keyup
-    HAS_KEYUP = True
-    print("LOG DO SISTEMA: Biblioteca 'st-keyup' carregada com sucesso! Busca instantânea ativa.")
-except ImportError as e:
-    HAS_KEYUP = False
-    print(f"LOG DE ERRO CRÍTICO: Falha ao carregar 'st-keyup'. Motivo: {e}")
-    print("LOG DO SISTEMA: Ativando modo de segurança (Busca Padrão). O sistema não cairá.")
-
 # ==============================================================================
 # 1. CONFIGURAÇÕES E INICIALIZAÇÃO
 # ==============================================================================
@@ -40,7 +30,7 @@ favicon = carregar_favicon(FAVICON_URL)
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. ESTILO CSS (CLEAN & MINIMALISTA)
+# 2. ESTILO CSS
 # ==============================================================================
 st.markdown("""
 <style>
@@ -131,6 +121,7 @@ def buscar_frases_otimizado(termo=None, empresa_filtro="Todas"):
         query = query.or_(filtro_texto)
     if empresa_filtro != "Todas":
         query = query.eq("empresa", empresa_filtro)
+    
     limite = 50 if termo else 4
     return query.limit(limite).execute().data or []
 
@@ -181,11 +172,8 @@ def tela_biblioteca(user):
     with st.container():
         c1, c2 = st.columns([3, 1])
         with c1:
-            # LÓGICA HÍBRIDA: Tenta KeyUp, se falhar, usa Text Input
-            if HAS_KEYUP:
-                termo = st_keyup("🔍 Pesquisar", placeholder="Digite para buscar instantaneamente...", debounce=500, label_visibility="collapsed", key="search_realtime")
-            else:
-                termo = st.text_input("🔍 Pesquisar", placeholder="Busque por Usuário, Empresa... (Enter para buscar)", label_visibility="collapsed", key="search_standard")
+            # BUSCA PADRÃO (Funciona sempre)
+            termo = st.text_input("🔍 Pesquisar", placeholder="Busque por Usuário, Empresa... (Enter para buscar)", label_visibility="collapsed")
         
         lista_empresas = listar_empresas_unicas()
         empresa = c2.selectbox("Empresa", lista_empresas, label_visibility="collapsed")
@@ -254,7 +242,7 @@ def tela_adicionar(user):
                     df.columns = [c.lower().strip() for c in df.columns]
                     required_cols = {'empresa', 'motivo', 'conteudo'}
                     if not required_cols.issubset(df.columns):
-                        st.error(f"Erro: Faltam colunas: {', '.join(required_cols)}")
+                        st.error(f"Erro: Faltam colunas obrigatórias: {', '.join(required_cols)}")
                     else:
                         with st.spinner("Analisando duplicatas..."):
                             res_existentes = supabase.table("frases").select("empresa, motivo, conteudo").execute()
@@ -447,4 +435,4 @@ else:
     elif selecao == "Manutenção": tela_manutencao(user)
     elif selecao == "Admin": tela_admin(user)
 
-    st.markdown("<br><div style='text-align:center; color:#CCC; font-size:0.8rem'>Gupy Frases v4.0 • Busca Híbrida</div>", unsafe_allow_html=True)
+    st.markdown("<br><div style='text-align:center; color:#CCC; font-size:0.8rem'>Gupy Frases v4.1 • Sistema Estável</div>", unsafe_allow_html=True)
