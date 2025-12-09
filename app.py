@@ -8,7 +8,6 @@ import csv
 import pandas as pd
 from PIL import Image
 import extra_streamlit_components as stx
-#from st_keyup import st_keyup
 
 # ==============================================================================
 # 1. CONFIGURAÇÕES E INICIALIZAÇÃO
@@ -172,9 +171,8 @@ def tela_biblioteca(user):
     with st.container():
         c1, c2 = st.columns([3, 1])
         with c1:
-            # AQUI ESTÁ A MÁGICA DO KEYUP (BUSCA INSTANTÂNEA)
-            # debounce=500 espera 0.5s após parar de digitar para buscar
-            termo = st.text_input("🔍 Pesquisar", placeholder="Busque por Usuário, Empresa, Conteúdo...", debounce=500, label_visibility="collapsed", key="search_realtime")
+            # FIX: Voltamos ao input padrão para resolver o erro de deploy
+            termo = st.text_input("🔍 Pesquisar", placeholder="Busque por Usuário, Empresa, Conteúdo... (Enter para buscar)", label_visibility="collapsed")
         
         lista_empresas = listar_empresas_unicas()
         empresa = c2.selectbox("Empresa", lista_empresas, label_visibility="collapsed")
@@ -436,6 +434,4 @@ else:
     elif selecao == "Manutenção": tela_manutencao(user)
     elif selecao == "Admin": tela_admin(user)
 
-    st.markdown("<br><div style='text-align:center; color:#CCC; font-size:0.8rem'>Gupy Frases v3.8 • Busca Instantânea (KeyUp)</div>", unsafe_allow_html=True)
-
-
+    st.markdown("<br><div style='text-align:center; color:#CCC; font-size:0.8rem'>Gupy Frases v3.9 • Sistema Estável</div>", unsafe_allow_html=True)
