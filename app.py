@@ -102,7 +102,6 @@ def converter_para_csv(dados):
     """Converte lista de dicionários para string CSV sem usar Pandas"""
     if not dados: return ""
     output = io.StringIO()
-    # Pega as chaves do primeiro item para o cabeçalho
     if len(dados) > 0:
         writer = csv.DictWriter(output, fieldnames=dados[0].keys())
         writer.writeheader()
@@ -210,18 +209,36 @@ def tela_adicionar(user):
                     except Exception as e:
                         st.error(f"Erro ao salvar: {e}")
 
-def tela_gestao(user):
-    st.markdown("### ✏️ Gestão Rápida")
-    res = supabase.table("frases").select("id, empresa, motivo, conteudo").order("id", desc=True).limit(20).execute()
-    items = res.data
+def tela_manutencao(user):
+    st.markdown("### 🛠️ Manutenção de Frases")
+    st.caption("Edite ou exclua registros. Use a busca para encontrar frases antigas.")
+    
+    # Campo de busca específico para manutenção
+    q_manutencao = st.text_input("Buscar frase para editar/excluir", placeholder="Digite empresa ou motivo...")
+    
+    # Lógica de Busca: Se vazio = 4 últimas. Se tiver texto = Busca completa.
+    query = supabase.table("frases").select("id, empresa, motivo, conteudo").order("id", desc=True)
+    
+    if q_manutencao:
+        filtro = f"empresa.ilike.%{q_manutencao}%,motivo.ilike.%{q_manutencao}%"
+        query = query.or_(filtro).limit(20) # Aumenta limite se estiver buscando
+        st.info(f"Resultados da busca por: '{q_manutencao}'")
+    else:
+        query = query.limit(4) # Padrão limpo
+        st.caption("Mostrando apenas as 4 últimas adições.")
+        
+    items = query.execute().data
+    
+    if not items and q_manutencao:
+        st.warning("Nenhum item encontrado.")
+    
+    # Renderização dos itens
     for item in items:
         with st.expander(f"#{item['id']} | {item['empresa']} - {item['motivo']}"):
             st.text_area("Conteúdo", item['conteudo'], disabled=True, height=100)
             if st.button(f"🗑️ Excluir #{item['id']}", key=f"del_{item['id']}"):
                 supabase.table("frases").delete().eq("id", item['id']).execute()
-                
                 registrar_log(user['username'], "Excluir Frase", f"ID: {item['id']} - Empresa: {item['empresa']}")
-                
                 st.toast(f"Item {item['id']} excluído!")
                 time.sleep(1)
                 st.rerun()
@@ -229,13 +246,11 @@ def tela_gestao(user):
 def tela_admin(user_logado):
     st.markdown("### ⚙️ Painel Administrativo")
     
-    # Abas para organização
     tab_users, tab_logs, tab_backup = st.tabs(["👥 Gerir Usuários", "📜 Logs do Sistema", "💾 Backup"])
     
     # --- ABA 1: GERIR USUÁRIOS ---
     with tab_users:
         st.info("Edite permissões ou remova acesso de colaboradores.")
-        
         users_res = supabase.table("usuarios").select("*").order("id").execute()
         users = users_res.data
         
@@ -249,14 +264,12 @@ def tela_admin(user_logado):
                     with st.form(key=f"edit_user_{u['id']}"):
                         new_pass = st.text_input("Nova Senha", value=u['senha'], type="password")
                         is_admin = st.checkbox("É Administrador?", value=u.get('admin', False))
-                        
                         c_save, c_del = st.columns(2)
                         
                         if c_save.form_submit_button("💾 Atualizar", use_container_width=True):
                             supabase.table("usuarios").update({
                                 "senha": new_pass, "admin": is_admin
                             }).eq("id", u['id']).execute()
-                            
                             registrar_log(user_logado['username'], "Editar Usuário", f"Alterou usuário {u['username']}")
                             st.success("Atualizado!")
                             time.sleep(1)
@@ -291,58 +304,30 @@ def tela_admin(user_logado):
     with tab_logs:
         st.caption("Histórico das últimas 50 ações realizadas no sistema.")
         if st.button("🔄 Atualizar Logs"): st.rerun()
-        
         try:
             logs_res = supabase.table("logs").select("*").order("id", desc=True).limit(50).execute()
             logs = logs_res.data
-            
             if logs:
-                st.dataframe(
-                    logs, 
-                    column_config={
-                        "data_hora": "Data/Hora",
-                        "usuario": "Quem fez",
-                        "acao": "Ação",
-                        "detalhe": "Detalhes"
-                    },
-                    use_container_width=True,
-                    hide_index=True
-                )
-            else:
-                st.info("Nenhum registro de log encontrado.")
-        except:
-            st.error("Tabela 'logs' não encontrada. Verifique o Supabase.")
+                st.dataframe(logs, column_config={"data_hora": "Data/Hora", "usuario": "Quem fez", "acao": "Ação", "detalhe": "Detalhes"}, use_container_width=True, hide_index=True)
+            else: st.info("Nenhum registro de log encontrado.")
+        except: st.error("Tabela 'logs' não encontrada.")
 
     # --- ABA 3: BACKUP ---
     with tab_backup:
         st.info("Baixe os dados completos para segurança ou relatórios.")
-        
         c_bkp1, c_bkp2 = st.columns(2)
-        
         with c_bkp1:
             st.markdown("#### 📚 Frases")
             dados_frases = supabase.table("frases").select("*").execute().data
             csv_frases = converter_para_csv(dados_frases)
-            st.download_button(
-                label="⬇️ Baixar Frases (CSV)",
-                data=csv_frases,
-                file_name=f"backup_frases_{datetime.now().strftime('%Y%m%d')}.csv",
-                mime="text/csv",
-                use_container_width=True
-            )
+            st.download_button(label="⬇️ Baixar Frases (CSV)", data=csv_frases, file_name=f"backup_frases_{datetime.now().strftime('%Y%m%d')}.csv", mime="text/csv", use_container_width=True)
             st.caption(f"{len(dados_frases)} registros.")
 
         with c_bkp2:
             st.markdown("#### 👥 Usuários")
             dados_users = supabase.table("usuarios").select("*").execute().data
             csv_users = converter_para_csv(dados_users)
-            st.download_button(
-                label="⬇️ Baixar Usuários (CSV)",
-                data=csv_users,
-                file_name=f"backup_usuarios_{datetime.now().strftime('%Y%m%d')}.csv",
-                mime="text/csv",
-                use_container_width=True
-            )
+            st.download_button(label="⬇️ Baixar Usuários (CSV)", data=csv_users, file_name=f"backup_usuarios_{datetime.now().strftime('%Y%m%d')}.csv", mime="text/csv", use_container_width=True)
             st.caption(f"{len(dados_users)} registros.")
 
 # ==============================================================================
@@ -354,7 +339,6 @@ if "usuario_logado" not in st.session_state:
 
 cookie_manager = stx.CookieManager(key="auth_sys")
 
-# Tentar login automático
 if not st.session_state["usuario_logado"]:
     cookies = cookie_manager.get_all()
     token = cookies.get("gupy_token")
@@ -362,7 +346,6 @@ if not st.session_state["usuario_logado"]:
         user_db = recuperar_usuario_cookie(token)
         if user_db: st.session_state["usuario_logado"] = user_db
 
-# Login vs App
 if not st.session_state["usuario_logado"]:
     c1, c2, c3 = st.columns([1, 0.8, 1])
     with c2:
@@ -388,8 +371,7 @@ else:
         st.image(LOGO_URL, width=80)
     
     with c_nav:
-        opcoes = ["Biblioteca", "Adicionar", "Gestão"]
-        # Só adiciona Admin se for admin mesmo
+        opcoes = ["Biblioteca", "Adicionar", "Manutenção"]
         if user.get('admin') == True:
             opcoes.append("Admin")
             
@@ -405,7 +387,7 @@ else:
 
     if selecao == "Biblioteca": tela_biblioteca(user)
     elif selecao == "Adicionar": tela_adicionar(user)
-    elif selecao == "Gestão": tela_gestao(user)
+    elif selecao == "Manutenção": tela_manutencao(user)
     elif selecao == "Admin": tela_admin(user)
 
-    st.markdown("<br><div style='text-align:center; color:#CCC; font-size:0.8rem'>Gupy Frases v3.0 • Sistema Completo</div>", unsafe_allow_html=True)
+    st.markdown("<br><div style='text-align:center; color:#CCC; font-size:0.8rem'>Gupy Frases v3.1 • Sistema Otimizado</div>", unsafe_allow_html=True)
