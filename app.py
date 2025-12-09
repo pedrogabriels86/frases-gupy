@@ -70,7 +70,6 @@ st.markdown("""
         border-radius: 10px;
     }
     
-    /* Estilo para os Labels dos Filtros */
     .filter-label {
         font-size: 0.85rem;
         font-weight: 600;
@@ -122,38 +121,39 @@ def converter_para_csv(dados):
         writer.writerows(dados)
     return output.getvalue()
 
-# --- BUSCA OTIMIZADA COM 3 FATORES ---
-def buscar_frases_otimizado(termo=None, empresa_filtro="Todas", doc_filtro="Todos"):
+# FUNÇÃO 1: BUSCA PRINCIPAL (RESULTADOS)
+def buscar_frases_final(termo=None, empresa_filtro="Todas", doc_filtro="Todos"):
     query = supabase.table("frases").select("*").order("id", desc=True)
     
+    # Filtro de Texto
     if termo:
-        filtro_texto = f"conteudo.ilike.%{termo}%,empresa.ilike.%{termo}%,motivo.ilike.%{termo}%,revisado_por.ilike.%{termo}%,documento.ilike.%{termo}%"
-        query = query.or_(filtro_texto)
+        filtro = f"conteudo.ilike.%{termo}%,empresa.ilike.%{termo}%,motivo.ilike.%{termo}%,revisado_por.ilike.%{termo}%,documento.ilike.%{termo}%"
+        query = query.or_(filtro)
     
-    if empresa_filtro != "Todas":
-        query = query.eq("empresa", empresa_filtro)
-
-    if doc_filtro != "Todos":
-        query = query.eq("documento", doc_filtro)
+    # Filtros de Seleção
+    if empresa_filtro != "Todas": query = query.eq("empresa", empresa_filtro)
+    if doc_filtro != "Todos": query = query.eq("documento", doc_filtro)
     
-    limite = 50 if termo else 4
-    return query.limit(limite).execute().data or []
+    return query.limit(50 if termo else 4).execute().data or []
 
-@st.cache_data(ttl=300)
-def listar_empresas_unicas():
-    try:
-        data = supabase.table("frases").select("empresa").execute().data
-        empresas = sorted(list(set([d['empresa'] for d in data])))
-        return ["Todas"] + empresas
-    except: return ["Todas"]
-
-@st.cache_data(ttl=300)
-def listar_documentos_unicos():
-    try:
-        data = supabase.table("frases").select("documento").execute().data
-        docs = sorted(list(set([d['documento'] for d in data if d['documento']])))
-        return ["Todos"] + docs
-    except: return ["Todos"]
+# FUNÇÃO 2: BUSCA AUXILIAR (PARA POPULAR OS FILTROS)
+# Esta função olha para o termo digitado e devolve apenas as empresas/docs que existem nesse resultado
+@st.cache_data(ttl=60) # Cache curto para ser rápido
+def obter_filtros_inteligentes(termo=None):
+    query = supabase.table("frases").select("empresa, documento")
+    
+    if termo:
+        filtro = f"conteudo.ilike.%{termo}%,empresa.ilike.%{termo}%,motivo.ilike.%{termo}%,revisado_por.ilike.%{termo}%,documento.ilike.%{termo}%"
+        query = query.or_(filtro)
+    
+    # Busca dados leves (só 2 colunas)
+    data = query.execute().data or []
+    
+    # Processa listas únicas
+    empresas = sorted(list(set([d['empresa'] for d in data if d['empresa']])))
+    docs = sorted(list(set([d['documento'] for d in data if d['documento']])))
+    
+    return ["Todas"] + empresas, ["Todos"] + docs
 
 def padronizar(texto):
     return str(texto).strip() if texto else ""
@@ -191,25 +191,31 @@ def card_frase(frase):
 def tela_biblioteca(user):
     st.markdown("### 📂 Biblioteca de Frases")
     
-    # CONTAINER DE FILTROS COM TÍTULOS IDENTIFICADOS
     with st.container():
         c1, c2, c3 = st.columns([2, 1, 1])
         
         with c1:
             st.markdown('<div class="filter-label">🔎 O que procura?</div>', unsafe_allow_html=True)
-            termo = st.text_input("Busca", placeholder="Ex: Usuário, Motivo, Texto...", label_visibility="collapsed")
+            # A busca é o gatilho principal
+            termo = st.text_input("Busca", placeholder="Digite algo para filtrar...", label_visibility="collapsed")
+        
+        # LÓGICA INTELIGENTE:
+        # As opções dos filtros abaixo dependem do que foi digitado acima
+        opcoes_empresas, opcoes_docs = obter_filtros_inteligentes(termo)
         
         with c2:
             st.markdown('<div class="filter-label">🏢 Empresa</div>', unsafe_allow_html=True)
-            empresa = st.selectbox("Empresa", listar_empresas_unicas(), label_visibility="collapsed")
+            empresa = st.selectbox("Empresa", options=opcoes_empresas, label_visibility="collapsed")
 
         with c3:
             st.markdown('<div class="filter-label">📄 Tipo de Documento</div>', unsafe_allow_html=True)
-            doc_tipo = st.selectbox("Doc", listar_documentos_unicos(), label_visibility="collapsed")
+            doc_tipo = st.selectbox("Doc", options=opcoes_docs, label_visibility="collapsed")
 
-    with st.spinner("Buscando..."):
-        dados = buscar_frases_otimizado(termo if termo else None, empresa, doc_tipo)
+    # Busca final para o grid
+    with st.spinner("Atualizando resultados..."):
+        dados = buscar_frases_final(termo if termo else None, empresa, doc_tipo)
 
+    # Feedback Visual
     filtros_ativos = (termo or empresa != "Todas" or doc_tipo != "Todos")
     
     if not filtros_ativos:
@@ -220,7 +226,7 @@ def tela_biblioteca(user):
     st.divider()
 
     if not dados:
-        st.info("Nenhuma frase encontrada com essa combinação de filtros.")
+        st.info("Nenhuma frase encontrada com essa combinação.")
         return
 
     col1, col2 = st.columns(2)
@@ -456,14 +462,12 @@ else:
         opcoes = ["Biblioteca", "Adicionar", "Manutenção"]
         if user.get('admin') == True: opcoes.append("Admin")
         selecao = st.radio("Nav", opcoes, horizontal=True, label_visibility="collapsed")
-    
     with c_user:
         if st.button("Sair"):
             try: cookie_manager.delete("gupy_token")
             except: pass
             st.session_state["usuario_logado"] = None
             st.rerun()
-
     st.divider()
 
     if selecao == "Biblioteca": tela_biblioteca(user)
