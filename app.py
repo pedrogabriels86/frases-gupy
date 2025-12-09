@@ -174,7 +174,7 @@ def tela_biblioteca(user):
         with c1:
             # AQUI ESTÁ A MÁGICA DO KEYUP (BUSCA INSTANTÂNEA)
             # debounce=500 espera 0.5s após parar de digitar para buscar
-            termo = st_keyup("🔍 Pesquisar", placeholder="Busque por Usuário, Empresa, Conteúdo...", debounce=500, label_visibility="collapsed", key="search_realtime")
+            termo = st.text_input("🔍 Pesquisar", placeholder="Busque por Usuário, Empresa, Conteúdo...", debounce=500, label_visibility="collapsed", key="search_realtime")
         
         lista_empresas = listar_empresas_unicas()
         empresa = c2.selectbox("Empresa", lista_empresas, label_visibility="collapsed")
@@ -437,4 +437,5 @@ else:
     elif selecao == "Admin": tela_admin(user)
 
     st.markdown("<br><div style='text-align:center; color:#CCC; font-size:0.8rem'>Gupy Frases v3.8 • Busca Instantânea (KeyUp)</div>", unsafe_allow_html=True)
+
 
