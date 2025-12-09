@@ -10,11 +10,12 @@ from PIL import Image
 import extra_streamlit_components as stx
 import hashlib
 import html
-# --- NOVA BIBLIOTECA PARA O BOTÃO DE COPIAR ---
+
+# Tenta importar a biblioteca de copiar. Se falhar, avisa o usuário.
 try:
     from st_copy_to_clipboard import st_copy_to_clipboard
 except ImportError:
-    st.error("⚠️ Biblioteca em falta. Por favor, execute: pip install st-copy-to-clipboard")
+    st.error("⚠️ Biblioteca 'st-copy-to-clipboard' não encontrada. Adicione-a ao requirements.txt.")
     st.stop()
 
 # ==============================================================================
@@ -37,7 +38,7 @@ favicon = carregar_favicon(FAVICON_URL)
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. ESTILO CSS
+# 2. ESTILO CSS (PADRONIZAÇÃO VISUAL)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -47,24 +48,33 @@ st.markdown("""
     .block-container { padding-top: 1.5rem !important; }
     header { visibility: hidden; }
     
+    /* Estilo dos Cartões (Container) */
     div[data-testid="stVerticalBlockBorderWrapper"] {
         border-radius: 12px !important;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         background-color: white;
         margin-bottom: 1rem;
+        border: 1px solid #f0f2f6;
     }
     
+    /* Botões Gerais */
     div.stButton > button {
         border-radius: 8px;
         font-weight: 600;
         transition: all 0.3s ease;
     }
     
-    /* Ajuste para o botão de copiar ficar bonito */
+    /* Ajuste específico para o botão de copiar ficar discreto */
     div.stButton button:contains("Copiar") {
-        background-color: #f0f2f6;
-        color: #31333F;
-        border: 1px solid #dce0e6;
+        background-color: #f8f9fa;
+        color: #4a5568;
+        border: 1px solid #e2e8f0;
+        font-size: 0.8rem;
+        padding: 0.2rem 0.5rem;
+    }
+    div.stButton button:contains("Copiar"):hover {
+        border-color: #3182ce;
+        color: #3182ce;
     }
 
     .danger-zone { border: 1px solid #ff4b4b; background-color: #fff5f5; padding: 20px; border-radius: 10px; color: #7f1d1d; }
@@ -145,7 +155,7 @@ def buscar_frases_final(termo=None, empresa_filtro="Todas", doc_filtro="Todos"):
     return query.limit(50 if termo else 8).execute().data or []
 
 # ==============================================================================
-# 4. COMPONENTES VISUAIS (COM BOTÃO DE COPIAR)
+# 4. COMPONENTES VISUAIS (PADRONIZADOS E COM COPIA)
 # ==============================================================================
 
 def card_frase(frase):
@@ -157,17 +167,24 @@ def card_frase(frase):
         with c_head2:
              st.markdown(f"<div style='text-align:right; font-size:0.8em; color:#CCC'>#{frase['id']}</div>", unsafe_allow_html=True)
         
-        # --- HTML VISUAL (TEXTO COMPLETO) ---
+        # --- HTML PADRONIZADO (AQUI VOCÊ CONFIGURA A FONTE/TAMANHO) ---
         texto_seguro = html.escape(frase['conteudo'])
+        
         st.markdown(f"""
         <div style="
-            background-color: #f8f9fa;
-            border: 1px solid #e9ecef;
+            background-color: #f8f9fa;       /* Fundo cinza bem claro */
+            border: 1px solid #e9ecef;       /* Borda sutil */
             border-radius: 8px;
-            padding: 15px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
-            color: #212529;
+            padding: 16px;                   /* Espaço interno */
+            
+            /* -- PADRONIZAÇÃO DE TEXTO -- */
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif; /* Fonte moderna */
+            font-size: 15px;                 /* Tamanho legível */
+            color: #2d3748;                  /* Cinza escuro (confortável) */
+            line-height: 1.6;                /* Espaçamento entre linhas */
+            text-align: left;
+            
+            /* -- REGRAS DE QUEBRA -- */
             white-space: pre-wrap;
             word-wrap: break-word;
             overflow-wrap: break-word;
@@ -178,7 +195,7 @@ def card_frase(frase):
         </div>
         """, unsafe_allow_html=True)
         
-        # --- RODAPÉ COM BOTÃO DE COPIAR ---
+        # --- RODAPÉ COM BOTÃO ---
         c_footer1, c_footer2 = st.columns([3, 1], vertical_alignment="center")
         
         with c_footer1:
@@ -189,9 +206,7 @@ def card_frase(frase):
             """, unsafe_allow_html=True)
             
         with c_footer2:
-            # BOTÃO DE COPIAR AUTOMÁTICO
-            # O texto do botão será "📋 Copiar"
-            # 'text' é o que vai para o clipboard
+            # Botão de copiar da biblioteca externa
             st_copy_to_clipboard(frase['conteudo'], "📋 Copiar", key=f"cp_{frase['id']}")
 
 # ==============================================================================
@@ -236,7 +251,7 @@ def tela_biblioteca(user):
             st.markdown('<div class="filter-label">📄 Documento</div>', unsafe_allow_html=True)
             doc_tipo = st.selectbox("Doc", options=opcoes_docs, label_visibility="collapsed")
 
-    with st.spinner("Carregando frases..."):
+    with st.spinner("Carregando modelos..."):
         dados = buscar_frases_final(termo if termo else None, empresa, doc_tipo)
 
     if not dados: st.warning("📭 Nenhuma frase encontrada."); return
@@ -415,4 +430,4 @@ else:
     elif selecao == "Manutenção": tela_manutencao(user)
     elif selecao == "Admin": tela_admin(user)
     
-    st.markdown('<div class="footer">Desenvolvido com Streamlit • Gupy Frases v2.5</div>', unsafe_allow_html=True)
+    st.markdown('<div class="footer">Desenvolvido com Streamlit • Gupy Frases v2.6</div>', unsafe_allow_html=True)
