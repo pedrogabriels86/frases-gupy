@@ -114,23 +114,25 @@ def converter_para_csv(dados):
         writer.writerows(dados)
     return output.getvalue()
 
-# --- NOVA LÓGICA DE BUSCA COM FILTRO DE MOTIVO ---
-def buscar_frases_otimizado(termo=None, empresa_filtro="Todas", motivo_filtro="Todos"):
+# --- BUSCA COM FILTROS LINKADOS (TEXTO + EMPRESA + DOCUMENTO) ---
+def buscar_frases_otimizado(termo=None, empresa_filtro="Todas", doc_filtro="Todos"):
     query = supabase.table("frases").select("*").order("id", desc=True)
     
-    # 1. Filtro de Texto Geral
+    # 1. Filtro de Texto (Busca em tudo)
     if termo:
+        # Busca no conteúdo, empresa, motivo, user e documento
         filtro_texto = f"conteudo.ilike.%{termo}%,empresa.ilike.%{termo}%,motivo.ilike.%{termo}%,revisado_por.ilike.%{termo}%,documento.ilike.%{termo}%"
         query = query.or_(filtro_texto)
     
-    # 2. Filtro de Empresa
+    # 2. Filtro de Empresa (AND)
     if empresa_filtro != "Todas":
         query = query.eq("empresa", empresa_filtro)
 
-    # 3. Novo Filtro de Motivo
-    if motivo_filtro != "Todos":
-        query = query.eq("motivo", motivo_filtro)
+    # 3. Filtro de Documento (AND) - SUBSTITUIU O MOTIVO
+    if doc_filtro != "Todos":
+        query = query.eq("documento", doc_filtro)
     
+    # Limite dinâmico
     limite = 50 if termo else 4
     return query.limit(limite).execute().data or []
 
@@ -143,11 +145,13 @@ def listar_empresas_unicas():
     except: return ["Todas"]
 
 @st.cache_data(ttl=300)
-def listar_motivos_unicos():
+def listar_documentos_unicos():
+    """Busca todos os tipos de documentos existentes no banco para o filtro"""
     try:
-        data = supabase.table("frases").select("motivo").execute().data
-        motivos = sorted(list(set([d['motivo'] for d in data])))
-        return ["Todos"] + motivos
+        data = supabase.table("frases").select("documento").execute().data
+        # Filtra nulos e pega únicos
+        docs = sorted(list(set([d['documento'] for d in data if d['documento']])))
+        return ["Todos"] + docs
     except: return ["Todos"]
 
 def padronizar(texto):
@@ -168,6 +172,7 @@ def card_frase(frase):
         c_head1, c_head2 = st.columns([3, 1])
         with c_head1:
             st.markdown(f"**{frase['empresa']}**")
+            # Mostra Motivo e Documento no subtítulo para clareza
             st.caption(f"{frase['motivo']} • {frase['documento']}")
         with c_head2:
              st.markdown(f"<div style='text-align:right; font-size:0.8em; color:#888'>#{frase['id']}</div>", unsafe_allow_html=True)
@@ -186,29 +191,30 @@ def card_frase(frase):
 def tela_biblioteca(user):
     st.markdown("### 📂 Biblioteca de Frases")
     
-    # CONTAINER DE FILTROS COM 3 COLUNAS
+    # FILTROS LINKADOS
     with st.container():
-        c1, c2, c3 = st.columns([2, 1, 1]) # Busca maior, filtros menores
+        c1, c2, c3 = st.columns([2, 1, 1])
         
         with c1:
-            termo = st.text_input("🔍 Pesquisar", placeholder="Busque por Usuário, Empresa...", label_visibility="collapsed")
+            # Busca Geral (Texto)
+            termo = st.text_input("🔍 Pesquisar", placeholder="Busque por Usuário, Motivo, Texto...", label_visibility="collapsed")
         
         with c2:
-            # Lista de Empresas
+            # Filtro 1: Empresa
             lista_empresas = listar_empresas_unicas()
             empresa = st.selectbox("Empresa", lista_empresas, label_visibility="collapsed")
 
         with c3:
-            # Novo Filtro de Motivos
-            lista_motivos = listar_motivos_unicos()
-            motivo = st.selectbox("Motivo", lista_motivos, label_visibility="collapsed")
+            # Filtro 2: Tipo de Documento (Novo)
+            lista_docs = listar_documentos_unicos()
+            doc_tipo = st.selectbox("Tipo de Documento", lista_docs, label_visibility="collapsed")
 
     with st.spinner("Buscando..."):
-        # Passamos os 3 parâmetros para a busca otimizada
-        dados = buscar_frases_otimizado(termo if termo else None, empresa, motivo)
+        # Envia os 3 parâmetros para a busca linkada
+        dados = buscar_frases_otimizado(termo if termo else None, empresa, doc_tipo)
 
-    # Lógica de Feedback Visual
-    filtros_ativos = (termo or empresa != "Todas" or motivo != "Todos")
+    # Feedback Visual
+    filtros_ativos = (termo or empresa != "Todas" or doc_tipo != "Todos")
     
     if not filtros_ativos:
         st.caption("🔥 Destaques: Mostrando as 4 frases mais recentes.")
@@ -218,7 +224,7 @@ def tela_biblioteca(user):
     st.divider()
 
     if not dados:
-        st.info("Nenhuma frase encontrada com esses filtros.")
+        st.info("Nenhuma frase encontrada com essa combinação de filtros.")
         return
 
     col1, col2 = st.columns(2)
@@ -454,14 +460,12 @@ else:
         opcoes = ["Biblioteca", "Adicionar", "Manutenção"]
         if user.get('admin') == True: opcoes.append("Admin")
         selecao = st.radio("Nav", opcoes, horizontal=True, label_visibility="collapsed")
-    
     with c_user:
         if st.button("Sair"):
             try: cookie_manager.delete("gupy_token")
             except: pass
             st.session_state["usuario_logado"] = None
             st.rerun()
-
     st.divider()
 
     if selecao == "Biblioteca": tela_biblioteca(user)
