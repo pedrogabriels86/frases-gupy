@@ -4,5 +4,5 @@ pandas
 openpyxl
 extra-streamlit-components
 requests
-Pillow
+pillow
 st-keyup
