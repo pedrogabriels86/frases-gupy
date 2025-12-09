@@ -25,7 +25,7 @@ except: pass
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. CSS CUSTOMIZADO (RESPONSIVO E MODERNO - REVISADO)
+# 2. CSS CUSTOMIZADO (RESPONSIVO E MODERNO - REFINADO)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -49,35 +49,38 @@ st.markdown("""
         padding-right: 2rem;
     }
     
-    /* 2. Estilo do Container do Header (Topo Fixo - Apenas Logo e Usuário) */
+    /* 2. Estilo do Container do Header (Topo Fixo - Ajuste no z-index e posicionamento) */
+    /* Este bloco se refere ao primeiro bloco vertical (stVerticalBlock) na página */
     div[data-testid="stVerticalBlock"] > div:first-child > div:first-child { 
+        position: sticky; /* Torna o header fixo no topo */
+        top: 0; /* Fixa no topo */
         background-color: white;
         border-bottom: 1px solid #E2E8F0;
-        padding: 0.8rem 2rem; /* Ajustado para 2rem */
-        margin: -0.8rem -2rem 1.5rem -2rem; 
-        box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.05); /* Sombra mais suave */
-        z-index: 100;
-        width: 100vw; 
+        padding: 0.8rem 2rem; 
+        margin: -0.8rem -2rem 1.5rem -2rem; /* Usa margens negativas para preencher a largura total */
+        box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.05);
+        z-index: 100; /* Garante que fique acima de outros elementos */
+        width: calc(100% + 4rem); /* 100% + o padding negativo */
     }
 
     /* 3. Estilização do Menu (Tabs) - Card de Navegação */
     .menu-container {
         padding: 0.5rem 0rem;
         margin-bottom: 2rem;
-        border-radius: 10px; /* Mais arredondado */
+        border-radius: 10px; 
         background-color: white;
-        box-shadow: 0 4px 8px -2px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.03); /* Sombra elevada */
+        box-shadow: 0 4px 8px -2px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.03); 
         border: 1px solid #E2E8F0;
     }
     
     .stRadio > div[role="radiogroup"] { 
         display: flex; 
         gap: 8px; 
-        justify-content: center; /* Centraliza o Menu na página */
+        justify-content: center; 
     } 
     
     .stRadio > div[role="radiogroup"] label {
-        padding: 7px 18px; /* Mais espaçoso */
+        padding: 7px 18px; 
         border-radius: 8px; transition: all 0.2s ease;
         color: #475569; font-weight: 500; font-size: 0.95rem;
     }
@@ -87,13 +90,14 @@ st.markdown("""
         font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
     .stRadio > div[role="radiogroup"] label > div:first-child { display: none; }
-
+    
     /* 4. Alinhamento de Usuário e Botão SAIR no Header */
+    /* Este bloco estiliza a coluna do usuário/sair no header */
     div[data-testid="stVerticalBlock"] > div:first-child > div:first-child > div:nth-child(2) > div {
         display: flex; 
         align-items: center; 
         justify-content: flex-end; 
-        gap: 12px; /* Maior separação */
+        gap: 12px;
         height: 100%;
         margin-top: 0; 
     }
@@ -101,30 +105,37 @@ st.markdown("""
         text-align: right; 
         font-size: 0.85rem; 
         color: #475569; 
-        line-height: 1.1; 
+        line-height: 1.2; /* Aumentado para melhor alinhamento */
         min-width: 60px; 
+        padding-right: 5px; /* Pequeno espaçamento antes do botão */
     }
-    .stButton button { padding: 0.4rem 1rem !important; border-radius: 6px !important; } 
+    /* Estilo do botão de saída */
+    .stButton button { 
+        padding: 0.4rem 1rem !important; 
+        border-radius: 6px !important; 
+        font-size: 0.9rem;
+    } 
     
     /* 5. Estilização de Cards de Conteúdo (Geral) */
-    .content-card > div[data-testid="stVerticalBlock"] {
+    .content-card-wrapper {
         border: 1px solid #E2E8F0;
         border-radius: 10px;
         padding: 1rem;
         background-color: white;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        transition: transform 0.2s;
-        height: 100%; /* Garante altura uniforme em colunas */
+        transition: transform 0.2s, box-shadow 0.2s;
+        min-height: 100%; /* Garante altura uniforme nas colunas */
+        margin-bottom: 1.5rem; /* Adiciona espaçamento entre as linhas */
     }
-    .content-card > div[data-testid="stVerticalBlock"]:hover {
+    .content-card-wrapper:hover {
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
-        /* transform: translateY(-1px); */ /* Efeito sutil ao passar o mouse */
+        transform: translateY(-2px); /* Efeito sutil para indicar interatividade */
     }
 
     .frase-header h4 { 
         color:#1E3A8A; 
         font-weight: 700; 
-        font-size: 1.1rem; /* Um pouco maior */
+        font-size: 1.1rem; 
     }
     .badge-blue {
         background-color: #DBEAFE;
@@ -146,30 +157,44 @@ st.markdown("""
         margin-bottom: 0.5rem; 
         padding: 0.8rem !important;
         border-radius: 8px;
-        background-color: #f1f5f9 !important; /* Mais claro */
+        background-color: #f1f5f9 !important; 
         border: 1px solid #E2E8F0;
         font-size: 0.9rem;
     }
 
     /* 7. Responsividade da Biblioteca (Frases em 1 coluna em telas pequenas) */
-    /* Adiciona margem entre os cards em colunas (desktop) */
+    /* Remove o margin-bottom do div[data-testid="stHorizontalBlock"] > div pois já adicionamos no .content-card-wrapper */
     div[data-testid="stHorizontalBlock"] > div {
-        margin-bottom: 1.5rem;
+        margin-bottom: 0; /* Remove o margin-bottom que estava causando espaçamento desnecessário */
     }
-    /* Força os cards a empilharem em telas menores que 768px */
+    /* Força os cards a empilharem em telas menores que 768px - JÁ EXISTENTE E FUNCIONA BEM */
     @media (max-width: 768px) {
         div[data-testid="stHorizontalBlock"] {
             flex-direction: column;
         }
         div[data-testid="stHorizontalBlock"] > div {
             width: 100% !important;
-            margin-bottom: 1.5rem; /* Espaçamento entre os cards empilhados */
+        }
+        /* Ajuste o padding do corpo em telas menores */
+        .block-container {
+             padding-left: 1rem; 
+             padding-right: 1rem;
+        }
+        /* Ajuste o margin do header em telas menores */
+        div[data-testid="stVerticalBlock"] > div:first-child > div:first-child { 
+            margin: -0.8rem -1rem 1.5rem -1rem; 
+            padding: 0.8rem 1rem;
         }
     }
     
-    /* Remove a borda padrão do container que envolve o filtro/busca da biblioteca */
-    div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] {
-        border: none !important;
+    /* 8. Estilo para o container de Filtro/Busca (para parecer um "card" flutuante de filtro) */
+    .search-filter-container {
+        border: 1px solid #E2E8F0;
+        border-radius: 10px;
+        padding: 1rem 1.5rem 0.5rem 1.5rem; /* Topo, lados, baixo */
+        background-color: white;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        margin-bottom: 1.5rem;
     }
     
 </style>
@@ -212,8 +237,7 @@ def padronizar(texto, tipo="titulo"):
     return texto.title() if tipo == "titulo" else texto[0].upper() + texto[1:]
 
 def limpar_coluna(col): 
-    # Use 'unicodedata.category' e remova a dependência externa se possível (como estava na original, vou manter a chamada, mas a função embutida era 'category')
-    return ''.join(c for c in unicodedata.normalize('NFD', str(col).lower().strip()) if unicodedata.category(c) != 'Mn') # Corrigido unicodeda_category para unicodedata.category
+    return ''.join(c for c in unicodedata.normalize('NFD', str(col).lower().strip()) if unicodedata.category(c) != 'Mn')
 
 # ==============================================================================
 # 4. SISTEMA DE AUTENTICAÇÃO (Mantido)
@@ -240,12 +264,11 @@ if st.session_state["usuario_logado"] is None:
 
 def render_biblioteca(dados_totais, user):
     """Renderiza a página Biblioteca com busca e exibição em cards."""
-    # O container foi removido para usar o design em card apenas nos resultados.
-    # Apenas o bloco de busca/filtro será envolto por um container simples.
     
     st.markdown("### 🔎 Biblioteca de Frases")
     
-    with st.container(): # Novo container para o bloco de busca/filtro
+    # Usando o novo container de estilo para o bloco de busca/filtro
+    with st.markdown('<div class="search-filter-container">', unsafe_allow_html=True): 
         c_search, c_filter = st.columns([5, 2]) 
         
         with c_search:
@@ -254,10 +277,10 @@ def render_biblioteca(dados_totais, user):
                                   label_visibility="collapsed", key="lib_search_term")
         
         with c_filter:
-            # st.markdown("<p style='font-size: 0.8rem; margin-bottom: -5px; color: #475569;'>Filtrar Empresa</p>", unsafe_allow_html=True) # Removido para simplificar
             filtro_empresa = st.selectbox("Filtrar Empresa", 
                                           ["Todas"] + sorted(list(set(d['empresa'] for d in dados_totais))), 
                                           label_visibility="collapsed", key="lib_filter_empresa")
+    st.markdown('</div>', unsafe_allow_html=True) # Fecha o container .search-filter-container
     
     filtrados = dados_totais
     if filtro_empresa != "Todas": filtrados = [f for f in filtrados if f['empresa'] == filtro_empresa]
@@ -269,52 +292,50 @@ def render_biblioteca(dados_totais, user):
 
     st.markdown(f"<div style='margin-top: 10px; margin-bottom:15px; color:#64748B;'>Encontrados <b>{len(filtrados)}</b> resultados</div>", unsafe_allow_html=True)
     
-    if not filtrados: st.info("Nenhum resultado encontrado.")
+    if not filtrados: 
+        st.info("Nenhum resultado encontrado. Tente ajustar os filtros ou o termo de busca.")
+        
     else:
-        for i in range(0, len(filtrados), 2):
-            # Usando uma div HTML com a classe content-card para aplicar o estilo de card via CSS customizado
-            row_c1 = st.empty()
-            row_c2 = st.empty()
-            
-            # Novo layout de colunas usando a classe .content-card
-            cols = st.columns(2)
-            row_c1 = cols[0]
-            row_c2 = cols[1]
-
-            def render_frase_card(container, frase):
-                author = frase.get('revisado_por', 'Sistema')
-                date = frase.get('data_revisao', '')
-                with container:
-                    # Envolve o conteúdo do card para aplicar o estilo.
-                    # É um 'st.container' para ter um bloco vertical, que será estilizado pelo CSS
-                    with st.container() as card_container:
-                        card_container.markdown(f'<div class="content-card">', unsafe_allow_html=True) # Abre a div para o estilo de card
-                        
-                        st.markdown(f"""
-                        <div class="frase-header">
-                            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:5px;">
-                                <h4 style="margin:0;">{frase['empresa']}</h4>
-                                <span class="badge badge-blue">{frase['documento']}</span>
-                            </div>
-                            <div style="color:#64748B; font-size:0.9rem; margin-bottom:8px;">{frase['motivo']}</div>
-                            <div class="card-meta"><span>👤 {author}</span><span>📅 {date}</span></div>
+        
+        def render_frase_card(container, frase):
+            author = frase.get('revisado_por', 'Sistema')
+            date = frase.get('data_revisao', '')
+            with container:
+                # O wrapper com a classe .content-card-wrapper é usado para aplicar o estilo de card
+                st.markdown(f'<div class="content-card-wrapper">', unsafe_allow_html=True) 
+                
+                # Usando um container interno para agrupar elementos (Streamlit elements)
+                with st.container():
+                    st.markdown(f"""
+                    <div class="frase-header">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:5px;">
+                            <h4 style="margin:0;">{frase['empresa']}</h4>
+                            <span class="badge badge-blue">{frase['documento']}</span>
                         </div>
-                        """, unsafe_allow_html=True)
-                        st.code(frase['conteudo'], language="text")
-                        
-                        card_container.markdown('</div>', unsafe_allow_html=True) # Fecha a div
+                        <div style="color:#64748B; font-size:0.9rem; margin-bottom:8px;">{frase['motivo']}</div>
+                        <div class="card-meta"><span>👤 {author}</span><span>📅 {date}</span></div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    st.code(frase['conteudo'], language="text")
+                
+                st.markdown('</div>', unsafe_allow_html=True) # Fecha a div .content-card-wrapper
+        
+        # Renderização em Colunas Otimizada
+        for i in range(0, len(filtrados), 2):
+            cols = st.columns(2)
             
-            render_frase_card(row_c1, filtrados[i])
+            # Card 1 (Coluna 1)
+            render_frase_card(cols[0], filtrados[i])
+            
+            # Card 2 (Coluna 2), se existir
             if i + 1 < len(filtrados):
-                render_frase_card(row_c2, filtrados[i+1])
-            
+                render_frase_card(cols[1], filtrados[i+1])
+        
 def render_adicionar(dados_totais, user):
     st.markdown("### ➕ Adicionar Novas Frases")
     tab_man, tab_imp = st.tabs(["✍️ Manual", "📥 Importação em Massa"])
     
-    # ... (Restante da função render_adicionar mantida)
-    # ...
-    # ...
+    # ... (O restante das abas 'Adicionar' e 'Importação' é mantido)
     with tab_man:
         with st.container(border=True):
             st.subheader("Registro Manual")
@@ -385,14 +406,13 @@ def render_adicionar(dados_totais, user):
                         registrar_log(user['username'], "Importação", f"{len(novos)}"); 
                         st.success(f"🎉 {len(novos)} frases importadas com sucesso!"); 
                         st.cache_data.clear();
+                        st.rerun()
                     else: st.warning("Nenhuma frase nova para importar (Verifique por duplicatas).")
             except Exception as e: st.error(f"Erro ao processar arquivo: {e}")
 
 def render_manutencao(dados_totais, user):
     st.markdown("### ✏️ Gerenciar e Editar Registros")
-    # ... (Restante da função render_manutencao mantida)
-    # ...
-    # ...
+    # ... (O restante das funções 'Manutenção' e 'Admin' é mantido)
     q = st.text_input("Buscar por Frase, Empresa ou Motivo para editar...", placeholder="Digite para filtrar a lista...", key="maint_search")
     
     filtrados_manut = [f for f in dados_totais if q.lower() in str(f).lower()] if q else dados_totais
@@ -453,9 +473,7 @@ def render_manutencao(dados_totais, user):
 
 def render_admin(user, dados_totais):
     st.markdown("### 👑 Painel Administrativo")
-    # ... (Restante da função render_admin mantida)
-    # ...
-    # ...
+    # ... (O restante da função 'Admin' é mantido)
     tab_users, tab_logs = st.tabs(["👥 Gerenciar Usuários", "🔒 Logs & Backup"])
     
     with tab_users:
@@ -565,30 +583,31 @@ else:
     dados_totais = buscar_dados()
 
     # ----------------------------------------------------------------------
-    # 6.1 HEADER (APENAS LOGO E INFO DO USUÁRIO)
+    # 6.1 HEADER (APENAS LOGO E INFO DO USUÁRIO) - SIMPLIFICADO
     # ----------------------------------------------------------------------
+    # O container aqui é importante, pois o CSS está alvejando o primeiro elemento vertical block.
     with st.container():
-        # Apenas duas colunas: Logo (2) e Info do Usuário (1)
-        c_logo, c_user = st.columns([2, 1], vertical_alignment="center")
+        c_logo, c_user_info = st.columns([2, 1], vertical_alignment="center")
         
         with c_logo:
             if LOGO_URL: st.image(LOGO_URL, width=90) 
             else: st.markdown("### Gupy")
 
-        with c_user:
-            # Texto do usuário e botão SAIR na mesma coluna
+        with c_user_info:
+            # O st.markdown para o texto do usuário e o st.button para Sair.
+            # O alinhamento é feito via CSS (item 4).
             st.markdown(f"<div class='user-text'>Olá, <b>{user['username']}</b></div>", unsafe_allow_html=True)
-            if st.button("Sair", key="btn_logout", use_container_width=True): 
+            if st.button("Sair", key="btn_logout", type="secondary"): # Alterei para secondary para ser menos chamativo
                 cookie_manager.delete("gupy_user_token")
                 st.session_state["usuario_logado"] = None
                 st.session_state["logout_sync"] = True
                 st.rerun()
 
     # ----------------------------------------------------------------------
-    # 6.2 MENU DE NAVEGAÇÃO (MOVIDO PARA O CORPO DA PÁGINA)
+    # 6.2 MENU DE NAVEGAÇÃO
     # ----------------------------------------------------------------------
     with st.container():
-        st.markdown('<div class="menu-container">', unsafe_allow_html=True) # Container com sombra para o menu
+        st.markdown('<div class="menu-container">', unsafe_allow_html=True) 
         
         opcoes_map = {"Biblioteca": "📂 Biblioteca", "Adicionar": "➕ Adicionar", "Manutenção": "✏️ Gestão"}
         if user['admin']: opcoes_map["Admin"] = "⚙️ Admin"
@@ -596,7 +615,6 @@ else:
         opcoes_labels = list(opcoes_map.values())
         if 'page_sel' not in st.session_state: st.session_state.page_sel = opcoes_labels[0]
         
-        # O st.radio tem 100% da largura, garantindo que não será esmagado
         page_sel = st.radio("Menu", options=opcoes_labels, horizontal=True, label_visibility="collapsed", key='page_sel')
         page = [k for k, v in opcoes_map.items() if v == page_sel][0]
         
@@ -622,4 +640,3 @@ else:
             render_manutencao(dados_totais, user)
         elif page == "Admin" and user['admin']:
             render_admin(user, dados_totais)
-
