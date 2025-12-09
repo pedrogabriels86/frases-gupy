@@ -211,37 +211,81 @@ def tela_adicionar(user):
 
 def tela_manutencao(user):
     st.markdown("### 🛠️ Manutenção de Frases")
-    st.caption("Edite ou exclua registros. Use a busca para encontrar frases antigas.")
+    st.caption("Edite textos, corrija empresas ou exclua registros.")
     
-    # Campo de busca específico para manutenção
-    q_manutencao = st.text_input("Buscar frase para editar/excluir", placeholder="Digite empresa ou motivo...")
+    q_manutencao = st.text_input("Buscar frase", placeholder="Digite empresa, motivo ou ID...", key="search_manutencao")
     
     # Lógica de Busca: Se vazio = 4 últimas. Se tiver texto = Busca completa.
-    query = supabase.table("frases").select("id, empresa, motivo, conteudo").order("id", desc=True)
+    query = supabase.table("frases").select("*").order("id", desc=True)
     
     if q_manutencao:
-        filtro = f"empresa.ilike.%{q_manutencao}%,motivo.ilike.%{q_manutencao}%"
-        query = query.or_(filtro).limit(20) # Aumenta limite se estiver buscando
+        # Tenta buscar por ID se for numero, senao busca por texto
+        if q_manutencao.isdigit():
+             query = query.eq("id", q_manutencao)
+        else:
+             filtro = f"empresa.ilike.%{q_manutencao}%,motivo.ilike.%{q_manutencao}%"
+             query = query.or_(filtro)
         st.info(f"Resultados da busca por: '{q_manutencao}'")
     else:
-        query = query.limit(4) # Padrão limpo
-        st.caption("Mostrando apenas as 4 últimas adições.")
+        query = query.limit(4)
+        st.caption("Mostrando as 4 últimas adições.")
         
     items = query.execute().data
     
     if not items and q_manutencao:
         st.warning("Nenhum item encontrado.")
     
-    # Renderização dos itens
+    # Renderização Editável
     for item in items:
+        # Expander serve como "envelope" do item
         with st.expander(f"#{item['id']} | {item['empresa']} - {item['motivo']}"):
-            st.text_area("Conteúdo", item['conteudo'], disabled=True, height=100)
-            if st.button(f"🗑️ Excluir #{item['id']}", key=f"del_{item['id']}"):
-                supabase.table("frases").delete().eq("id", item['id']).execute()
-                registrar_log(user['username'], "Excluir Frase", f"ID: {item['id']} - Empresa: {item['empresa']}")
-                st.toast(f"Item {item['id']} excluído!")
-                time.sleep(1)
-                st.rerun()
+            
+            # Formulário para garantir que os dados só salvam quando clicar no botão
+            with st.form(key=f"form_edit_{item['id']}"):
+                c1, c2, c3 = st.columns([1.5, 1.5, 1])
+                # Campos editáveis com os valores atuais pré-preenchidos
+                new_empresa = c1.text_input("Empresa", value=item['empresa'])
+                new_motivo = c2.text_input("Motivo", value=item['motivo'])
+                new_doc = c3.text_input("Documento", value=item['documento'])
+                
+                new_conteudo = st.text_area("Conteúdo da Frase", value=item['conteudo'], height=150)
+                
+                st.write("---")
+                
+                # Botões de Ação
+                col_save, col_del = st.columns([1, 0.25])
+                
+                # Botão SALVAR
+                if col_save.form_submit_button("💾 Salvar Alterações", type="primary"):
+                    try:
+                        supabase.table("frases").update({
+                            "empresa": padronizar(new_empresa),
+                            "motivo": padronizar(new_motivo),
+                            "documento": padronizar(new_doc),
+                            "conteudo": padronizar(new_conteudo),
+                            "revisado_por": user['username'],
+                            "data_revisao": datetime.now().strftime('%Y-%m-%d')
+                        }).eq("id", item['id']).execute()
+                        
+                        registrar_log(user['username'], "Editar Frase", f"ID: {item['id']} - {new_empresa}")
+                        st.success("Alterações salvas!")
+                        time.sleep(1)
+                        st.cache_data.clear() # Limpa cache para atualizar a biblioteca
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Erro ao salvar: {e}")
+
+                # Botão EXCLUIR
+                if col_del.form_submit_button("🗑️ Excluir"):
+                    try:
+                        supabase.table("frases").delete().eq("id", item['id']).execute()
+                        registrar_log(user['username'], "Excluir Frase", f"ID: {item['id']} - {item['empresa']}")
+                        st.toast(f"Item {item['id']} excluído!")
+                        time.sleep(1)
+                        st.cache_data.clear()
+                        st.rerun()
+                    except:
+                         st.error("Erro ao excluir.")
 
 def tela_admin(user_logado):
     st.markdown("### ⚙️ Painel Administrativo")
@@ -390,4 +434,4 @@ else:
     elif selecao == "Manutenção": tela_manutencao(user)
     elif selecao == "Admin": tela_admin(user)
 
-    st.markdown("<br><div style='text-align:center; color:#CCC; font-size:0.8rem'>Gupy Frases v3.1 • Sistema Otimizado</div>", unsafe_allow_html=True)
+    st.markdown("<br><div style='text-align:center; color:#CCC; font-size:0.8rem'>Gupy Frases v3.2 • Manutenção Avançada</div>", unsafe_allow_html=True)
