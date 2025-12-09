@@ -425,9 +425,17 @@ else:
         opcoes = ["Biblioteca", "Adicionar", "Manutenção"]
         if user.get('admin') == True: opcoes.append("Admin")
         selecao = st.radio("Nav", opcoes, horizontal=True, label_visibility="collapsed")
+    
     with c_user:
         if st.button("Sair"):
-            cookie_manager.delete("gupy_token"); st.session_state["usuario_logado"] = None; st.rerun()
+            # LÓGICA SEGURA DE LOGOUT
+            try:
+                cookie_manager.delete("gupy_token")
+            except:
+                pass # Se o cookie não existir, segue em frente
+            st.session_state["usuario_logado"] = None
+            st.rerun()
+
     st.divider()
 
     if selecao == "Biblioteca": tela_biblioteca(user)
