@@ -8,6 +8,7 @@ import csv
 import pandas as pd
 from PIL import Image
 import extra_streamlit_components as stx
+from st_keyup import st_keyup  # <--- NOVA IMPORTAÇÃO MÁGICA
 
 # ==============================================================================
 # 1. CONFIGURAÇÕES E INICIALIZAÇÃO
@@ -114,23 +115,14 @@ def converter_para_csv(dados):
         writer.writerows(dados)
     return output.getvalue()
 
-# FUNÇÃO DE BUSCA ATUALIZADA (Agora busca por usuario, documento, etc.)
 def buscar_frases_otimizado(termo=None, empresa_filtro="Todas"):
     query = supabase.table("frases").select("*").order("id", desc=True)
-    
-    # Se tiver termo, aplica filtro em TODAS as colunas relevantes
     if termo:
-        # Sintaxe ILIKE do Supabase para buscar em varias colunas
         filtro_texto = f"conteudo.ilike.%{termo}%,empresa.ilike.%{termo}%,motivo.ilike.%{termo}%,revisado_por.ilike.%{termo}%,documento.ilike.%{termo}%"
         query = query.or_(filtro_texto)
-    
     if empresa_filtro != "Todas":
         query = query.eq("empresa", empresa_filtro)
-        
-    # Se NÃO tiver termo de busca (tela inicial), limita a 4. 
-    # Se TIVER termo (usuário buscando), traz até 50 resultados.
     limite = 50 if termo else 4
-    
     return query.limit(limite).execute().data or []
 
 @st.cache_data(ttl=300)
@@ -177,19 +169,19 @@ def card_frase(frase):
 def tela_biblioteca(user):
     st.markdown("### 📂 Biblioteca de Frases")
     
-    # Área de Busca
     with st.container():
         c1, c2 = st.columns([3, 1])
-        # Placeholder indica que pode buscar por usuario
-        termo = c1.text_input("🔍 Pesquisar", placeholder="Busque por Usuário, Empresa, Conteúdo...", label_visibility="collapsed")
+        with c1:
+            # AQUI ESTÁ A MÁGICA DO KEYUP (BUSCA INSTANTÂNEA)
+            # debounce=500 espera 0.5s após parar de digitar para buscar
+            termo = st_keyup("🔍 Pesquisar", placeholder="Busque por Usuário, Empresa, Conteúdo...", debounce=500, label_visibility="collapsed", key="search_realtime")
+        
         lista_empresas = listar_empresas_unicas()
         empresa = c2.selectbox("Empresa", lista_empresas, label_visibility="collapsed")
 
-    # Busca Otimizada (A lógica de limitar a 4 está dentro da função 'buscar_frases_otimizado')
     with st.spinner("Buscando..."):
         dados = buscar_frases_otimizado(termo if termo else None, empresa)
 
-    # Feedback Visual
     if not termo and empresa == "Todas":
         st.caption("🔥 Destaques: Mostrando as 4 frases mais recentes.")
     elif termo:
@@ -201,7 +193,6 @@ def tela_biblioteca(user):
         st.info("Nenhuma frase encontrada com esses filtros.")
         return
 
-    # Renderização Grid
     col1, col2 = st.columns(2)
     for i, frase in enumerate(dados):
         with (col1 if i % 2 == 0 else col2):
@@ -242,10 +233,7 @@ def tela_adicionar(user):
     with tab_import:
         st.info("Carregue uma planilha Excel (.xlsx).")
         with st.expander("📌 Ver colunas da planilha"):
-            st.markdown("""
-            **Colunas Obrigatórias:** `empresa`, `motivo`, `conteudo`.  
-            **Colunas Opcionais:** `documento`, `usuario`, `data`.
-            """)
+            st.markdown("**Colunas:** `empresa`, `motivo`, `conteudo`, `documento` (opc), `usuario` (opc), `data` (opc).")
         
         arquivo = st.file_uploader("Selecione o arquivo Excel", type=["xlsx"])
         if arquivo:
@@ -255,9 +243,9 @@ def tela_adicionar(user):
                     df.columns = [c.lower().strip() for c in df.columns]
                     required_cols = {'empresa', 'motivo', 'conteudo'}
                     if not required_cols.issubset(df.columns):
-                        st.error(f"Erro: Faltam colunas obrigatórias: {', '.join(required_cols)}")
+                        st.error(f"Erro: Faltam colunas: {', '.join(required_cols)}")
                     else:
-                        with st.spinner("Analisando assinaturas..."):
+                        with st.spinner("Analisando duplicatas..."):
                             res_existentes = supabase.table("frases").select("empresa, motivo, conteudo").execute()
                             assinaturas_existentes = set()
                             for item in res_existentes.data:
@@ -269,12 +257,10 @@ def tela_adicionar(user):
                             try:
                                 el = padronizar(row['empresa']); ml = padronizar(row['motivo']); cl = padronizar(row['conteudo'])
                                 ass_atual = gerar_assinatura(el, ml, cl)
-                                
                                 if ass_atual in assinaturas_existentes: duplicados += 1
                                 else:
                                     user_excel = row.get('usuario')
                                     user_final = str(user_excel).strip() if pd.notnull(user_excel) and str(user_excel).strip() != "" else user['username']
-                                    
                                     data_excel = row.get('data')
                                     data_final = datetime.now().strftime('%Y-%m-%d')
                                     if pd.notnull(data_excel):
@@ -292,7 +278,7 @@ def tela_adicionar(user):
                         
                         st.success("Concluído!")
                         c1, c2, c3 = st.columns(3)
-                        c1.metric("✅ Importados", sucesso); c2.metric("🚫 Duplicados", duplicados); c3.metric("⚠️ Erros", erros)
+                        c1.metric("✅", sucesso); c2.metric("🚫", duplicados); c3.metric("⚠️", erros)
                         if sucesso > 0:
                             registrar_log(user['username'], "Importação em Massa", f"Importou {sucesso} itens.")
                             time.sleep(4); st.cache_data.clear(); st.rerun()
@@ -353,7 +339,6 @@ def tela_admin(user_logado):
                             else:
                                 supabase.table("usuarios").delete().eq("id", u['id']).execute()
                                 registrar_log(user_logado['username'], "Excluir Usuário", u['username']); st.rerun()
-        
         with st.expander("➕ Novo Usuário"):
             with st.form("nu"):
                 nu = st.text_input("User"); ns = st.text_input("Pass", type="password"); na = st.checkbox("Admin")
@@ -451,4 +436,4 @@ else:
     elif selecao == "Manutenção": tela_manutencao(user)
     elif selecao == "Admin": tela_admin(user)
 
-    st.markdown("<br><div style='text-align:center; color:#CCC; font-size:0.8rem'>Gupy Frases v3.7 • Busca Universal</div>", unsafe_allow_html=True)
+    st.markdown("<br><div style='text-align:center; color:#CCC; font-size:0.8rem'>Gupy Frases v3.8 • Busca Instantânea (KeyUp)</div>", unsafe_allow_html=True)
