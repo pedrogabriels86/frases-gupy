@@ -1,6 +1,7 @@
 streamlit
 supabase
 pandas
+openpyxl
+extra-streamlit-components
 requests
 Pillow
-extra-streamlit-components
