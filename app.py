@@ -8,7 +8,7 @@ import csv
 import pandas as pd
 from PIL import Image
 import extra_streamlit_components as stx
-from st_keyup import st_keyup  # <--- NOVA IMPORTAÇÃO MÁGICA
+#from st_keyup import st_keyup
 
 # ==============================================================================
 # 1. CONFIGURAÇÕES E INICIALIZAÇÃO
@@ -437,3 +437,4 @@ else:
     elif selecao == "Admin": tela_admin(user)
 
     st.markdown("<br><div style='text-align:center; color:#CCC; font-size:0.8rem'>Gupy Frases v3.8 • Busca Instantânea (KeyUp)</div>", unsafe_allow_html=True)
+
