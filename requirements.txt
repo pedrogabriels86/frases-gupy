@@ -1,7 +1,8 @@
 streamlit
 supabase
 pandas
-openpyxl
-extra-streamlit-components
 requests
-pillow
+Pillow
+extra-streamlit-components
+openpyxl
+st-copy-to-clipboard
