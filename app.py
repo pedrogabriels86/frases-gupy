@@ -9,6 +9,7 @@ import pandas as pd
 from PIL import Image
 import extra_streamlit_components as stx
 import hashlib
+import html  # Importante para segurança do texto HTML
 
 # ==============================================================================
 # 1. CONFIGURAÇÕES E INICIALIZAÇÃO
@@ -30,7 +31,7 @@ favicon = carregar_favicon(FAVICON_URL)
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. ESTILO CSS (CORREÇÃO AGRESSIVA PARA QUEBRA DE LINHA)
+# 2. ESTILO CSS (LIMPO E OTIMIZADO)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -40,7 +41,7 @@ st.markdown("""
     .block-container { padding-top: 1.5rem !important; }
     header { visibility: hidden; }
     
-    /* Card Container */
+    /* Estilo dos Cartões */
     div[data-testid="stVerticalBlockBorderWrapper"] {
         border-radius: 12px !important;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
@@ -53,30 +54,6 @@ st.markdown("""
         font-weight: 600;
         transition: all 0.3s ease;
     }
-
-    /* --- CORREÇÃO DEFINITIVA DE QUEBRA DE LINHA (WRAP TEXT) --- */
-    
-    /* 1. Garante que o bloco ocupe a largura mas não estoure */
-    div[data-testid="stCodeBlock"] {
-        width: 100% !important;
-    }
-    
-    /* 2. Força a tag PRE (container) a quebrar linha e esconder scroll */
-    div[data-testid="stCodeBlock"] pre {
-        white-space: pre-wrap !important;   /* OBRIGA a quebrar a linha */
-        word-wrap: break-word !important;   /* Quebra palavras longas se precisar */
-        overflow-x: hidden !important;      /* Remove a barra de rolagem horizontal */
-        max-height: none !important;        /* Permite crescer verticalmente */
-    }
-    
-    /* 3. Força a tag CODE (texto interno) a herdar a quebra */
-    div[data-testid="stCodeBlock"] code {
-        white-space: pre-wrap !important;
-        word-break: break-word !important;
-        font-family: 'Courier New', Courier, monospace !important;
-        font-size: 0.9rem !important;
-    }
-    /* ----------------------------------------------------------- */
 
     .danger-zone { border: 1px solid #ff4b4b; background-color: #fff5f5; padding: 20px; border-radius: 10px; color: #7f1d1d; }
     .filter-label { font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 5px; }
@@ -162,7 +139,7 @@ def buscar_frases_final(termo=None, empresa_filtro="Todas", doc_filtro="Todos"):
     return query.limit(50 if termo else 8).execute().data or []
 
 # ==============================================================================
-# 4. COMPONENTES VISUAIS (CORREÇÃO DO ST.CODE)
+# 4. COMPONENTES VISUAIS (CORREÇÃO VIA HTML PURO)
 # ==============================================================================
 
 def card_frase(frase):
@@ -174,8 +151,30 @@ def card_frase(frase):
         with c_head2:
              st.markdown(f"<div style='text-align:right; font-size:0.8em; color:#CCC'>#{frase['id']}</div>", unsafe_allow_html=True)
         
-        # IMPORTANTE: language=None desativa a formatação de código e permite que o CSS funcione
-        st.code(frase['conteudo'], language=None)
+        # --- SOLUÇÃO DE VISUALIZAÇÃO ---
+        # Usamos HTML direto para garantir a quebra de linha (word-wrap)
+        # O 'html.escape' previne erros se houver caracteres especiais no texto
+        texto_seguro = html.escape(frase['conteudo'])
+        
+        st.markdown(f"""
+        <div style="
+            background-color: #f0f2f6;
+            border: 1px solid #dce0e6;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #31333F;
+            white-space: pre-wrap;       /* Mantém parágrafos e quebra linhas */
+            word-wrap: break-word;       /* Quebra palavras longas */
+            overflow-wrap: break-word;   /* Garante que não estoure a largura */
+            line-height: 1.5;
+            margin-top: 10px;
+        ">
+            {texto_seguro}
+        </div>
+        """, unsafe_allow_html=True)
+        # --------------------------------
         
         st.markdown(f"""
         <div style='display:flex; justify-content:space-between; font-size:0.75rem; color:#888; margin-top:5px; border-top:1px dashed #eee; padding-top:5px;'>
@@ -191,20 +190,16 @@ def card_frase(frase):
 def tela_biblioteca(user):
     st.markdown("### 📂 Biblioteca de Modelos")
     
-    # 1. Carrega dados leves para os filtros (Cacheado)
     df_filtros = obter_dataframe_filtros()
     
-    # --- FILTROS LINKADOS (CASCATA) ---
     with st.container(border=True):
         c1, c2, c3 = st.columns([2, 1, 1])
-        
         with c1:
             st.markdown('<div class="filter-label">🔎 Busca Rápida</div>', unsafe_allow_html=True)
             termo = st.text_input("Busca", placeholder="Palavra-chave...", label_visibility="collapsed")
 
         df_temp = df_filtros.copy()
         
-        # Passo 1: Filtrar DF pelo termo digitado
         if termo and not df_temp.empty:
             termo_lower = termo.lower()
             mask = (
@@ -214,7 +209,6 @@ def tela_biblioteca(user):
             )
             df_temp = df_temp[mask]
 
-        # Passo 2: Popula lista de empresas baseada no filtro anterior
         if not df_temp.empty:
             lista_empresas = sorted(df_temp['empresa'].dropna().unique().tolist())
         else: lista_empresas = []
@@ -224,11 +218,9 @@ def tela_biblioteca(user):
             st.markdown('<div class="filter-label">🏢 Empresa</div>', unsafe_allow_html=True)
             empresa = st.selectbox("Empresa", options=opcoes_empresas, label_visibility="collapsed")
 
-        # Passo 3: Filtra DF pela empresa selecionada
         if empresa != "Todas" and not df_temp.empty:
             df_temp = df_temp[df_temp['empresa'] == empresa]
         
-        # Passo 4: Popula lista de docs baseada nos filtros anteriores
         if not df_temp.empty:
             lista_docs = sorted(df_temp['documento'].dropna().unique().tolist())
         else: lista_docs = []
@@ -238,11 +230,9 @@ def tela_biblioteca(user):
             st.markdown('<div class="filter-label">📄 Documento</div>', unsafe_allow_html=True)
             doc_tipo = st.selectbox("Doc", options=opcoes_docs, label_visibility="collapsed")
 
-    # --- BUSCA REAL NO BANCO ---
     with st.spinner("Carregando frases..."):
         dados = buscar_frases_final(termo if termo else None, empresa, doc_tipo)
 
-    # Feedback
     if not dados:
         st.warning("📭 Nenhuma frase encontrada.")
         return
@@ -430,4 +420,4 @@ else:
     elif selecao == "Manutenção": tela_manutencao(user)
     elif selecao == "Admin": tela_admin(user)
     
-    st.markdown('<div class="footer">Desenvolvido com Streamlit • Gupy Frases v2.3</div>', unsafe_allow_html=True)
+    st.markdown('<div class="footer">Desenvolvido com Streamlit • Gupy Frases v2.4</div>', unsafe_allow_html=True)
