@@ -30,7 +30,7 @@ favicon = carregar_favicon(FAVICON_URL)
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. ESTILO CSS (CORREÇÃO DE QUEBRA DE LINHA E VISUAL)
+# 2. ESTILO CSS (CORREÇÃO AGRESSIVA PARA QUEBRA DE LINHA)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -54,32 +54,32 @@ st.markdown("""
         transition: all 0.3s ease;
     }
 
-    /* --- CSS PARA TEXTO NÃO CORTAR (WRAP TEXT) --- */
+    /* --- CORREÇÃO DEFINITIVA DE QUEBRA DE LINHA (WRAP TEXT) --- */
+    
+    /* 1. Garante que o bloco ocupe a largura mas não estoure */
     div[data-testid="stCodeBlock"] {
-        min-width: 100% !important;
+        width: 100% !important;
     }
     
-    /* Força o container do texto a quebrar linha e crescer */
+    /* 2. Força a tag PRE (container) a quebrar linha e esconder scroll */
     div[data-testid="stCodeBlock"] pre {
-        white-space: pre-wrap !important;   /* Quebra linha */
-        word-break: break-word !important;  /* Quebra palavras longas */
-        overflow-x: hidden !important;      /* Sem scroll horizontal */
-        overflow-y: hidden !important;      /* Sem scroll vertical */
-        max-height: none !important;        /* Altura automática */
-        border-radius: 8px !important;
+        white-space: pre-wrap !important;   /* OBRIGA a quebrar a linha */
+        word-wrap: break-word !important;   /* Quebra palavras longas se precisar */
+        overflow-x: hidden !important;      /* Remove a barra de rolagem horizontal */
+        max-height: none !important;        /* Permite crescer verticalmente */
     }
     
+    /* 3. Força a tag CODE (texto interno) a herdar a quebra */
     div[data-testid="stCodeBlock"] code {
         white-space: pre-wrap !important;
+        word-break: break-word !important;
         font-family: 'Courier New', Courier, monospace !important;
         font-size: 0.9rem !important;
     }
-    /* -------------------------------------------- */
+    /* ----------------------------------------------------------- */
 
     .danger-zone { border: 1px solid #ff4b4b; background-color: #fff5f5; padding: 20px; border-radius: 10px; color: #7f1d1d; }
     .filter-label { font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 5px; }
-    
-    /* Footer */
     .footer { text-align: center; color: #CCC; font-size: 0.8rem; margin-top: 50px; border-top: 1px solid #EEE; padding-top: 20px; }
 </style>
 """, unsafe_allow_html=True)
@@ -162,7 +162,7 @@ def buscar_frases_final(termo=None, empresa_filtro="Todas", doc_filtro="Todos"):
     return query.limit(50 if termo else 8).execute().data or []
 
 # ==============================================================================
-# 4. COMPONENTES VISUAIS
+# 4. COMPONENTES VISUAIS (CORREÇÃO DO ST.CODE)
 # ==============================================================================
 
 def card_frase(frase):
@@ -174,7 +174,7 @@ def card_frase(frase):
         with c_head2:
              st.markdown(f"<div style='text-align:right; font-size:0.8em; color:#CCC'>#{frase['id']}</div>", unsafe_allow_html=True)
         
-        # language=None é crucial para o CSS de quebra de linha funcionar
+        # IMPORTANTE: language=None desativa a formatação de código e permite que o CSS funcione
         st.code(frase['conteudo'], language=None)
         
         st.markdown(f"""
@@ -202,7 +202,6 @@ def tela_biblioteca(user):
             st.markdown('<div class="filter-label">🔎 Busca Rápida</div>', unsafe_allow_html=True)
             termo = st.text_input("Busca", placeholder="Palavra-chave...", label_visibility="collapsed")
 
-        # Preparação do DataFrame temporário para cascata
         df_temp = df_filtros.copy()
         
         # Passo 1: Filtrar DF pelo termo digitado
@@ -431,4 +430,4 @@ else:
     elif selecao == "Manutenção": tela_manutencao(user)
     elif selecao == "Admin": tela_admin(user)
     
-    st.markdown('<div class="footer">Desenvolvido com Streamlit • Gupy Frases v2.2</div>', unsafe_allow_html=True)
+    st.markdown('<div class="footer">Desenvolvido com Streamlit • Gupy Frases v2.3</div>', unsafe_allow_html=True)
