@@ -30,7 +30,7 @@ favicon = carregar_favicon(FAVICON_URL)
 st.set_page_config(page_title="Gupy Frases", page_icon=favicon, layout="wide")
 
 # ==============================================================================
-# 2. ESTILO CSS OTIMIZADO
+# 2. ESTILO CSS (CORREÇÃO DE QUEBRA DE LINHA E VISUAL)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -43,9 +43,9 @@ st.markdown("""
     /* Card Container */
     div[data-testid="stVerticalBlockBorderWrapper"] {
         border-radius: 12px !important;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         background-color: white;
-        transition: transform 0.2s;
+        margin-bottom: 1rem;
     }
     
     div.stButton > button {
@@ -54,17 +54,28 @@ st.markdown("""
         transition: all 0.3s ease;
     }
 
-    /* CSS Mágico para st.code (Texto quebra linha corretamente) */
-    div[data-testid="stCodeBlock"] pre {
-        white-space: pre-wrap !important;
-        word-break: break-word !important;
+    /* --- CSS PARA TEXTO NÃO CORTAR (WRAP TEXT) --- */
+    div[data-testid="stCodeBlock"] {
+        min-width: 100% !important;
     }
+    
+    /* Força o container do texto a quebrar linha e crescer */
+    div[data-testid="stCodeBlock"] pre {
+        white-space: pre-wrap !important;   /* Quebra linha */
+        word-break: break-word !important;  /* Quebra palavras longas */
+        overflow-x: hidden !important;      /* Sem scroll horizontal */
+        overflow-y: hidden !important;      /* Sem scroll vertical */
+        max-height: none !important;        /* Altura automática */
+        border-radius: 8px !important;
+    }
+    
     div[data-testid="stCodeBlock"] code {
         white-space: pre-wrap !important;
         font-family: 'Courier New', Courier, monospace !important;
+        font-size: 0.9rem !important;
     }
+    /* -------------------------------------------- */
 
-    /* Área de Perigo e Filtros */
     .danger-zone { border: 1px solid #ff4b4b; background-color: #fff5f5; padding: 20px; border-radius: 10px; color: #7f1d1d; }
     .filter-label { font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 5px; }
     
@@ -85,9 +96,6 @@ except Exception as e:
     st.stop()
 
 # --- Funções Auxiliares ---
-def hash_senha(senha):
-    return hashlib.sha256(senha.encode()).hexdigest()
-
 def padronizar(texto):
     return str(texto).strip() if texto else ""
 
@@ -109,7 +117,6 @@ def verificar_login(u, s):
         res = supabase.table("usuarios").select("*").eq("username", u).execute()
         if res.data:
             user = res.data[0]
-            # Verifica texto simples (legado) ou hash futuro
             if user['senha'] == s: 
                 return user
         return None
@@ -135,7 +142,6 @@ def registrar_log(usuario, acao, detalhe):
 def obter_dataframe_filtros():
     """Baixa metadados leves para alimentar os filtros dinâmicos na memória."""
     try:
-        # Busca apenas colunas necessárias para filtrar
         res = supabase.table("frases").select("id, empresa, documento, motivo, conteudo").execute()
         df = pd.DataFrame(res.data)
         return df
@@ -168,8 +174,8 @@ def card_frase(frase):
         with c_head2:
              st.markdown(f"<div style='text-align:right; font-size:0.8em; color:#CCC'>#{frase['id']}</div>", unsafe_allow_html=True)
         
-        # Exibe o código (Markdown language remove syntax highlighting colorido excessivo)
-        st.code(frase['conteudo'], language="markdown")
+        # language=None é crucial para o CSS de quebra de linha funcionar
+        st.code(frase['conteudo'], language=None)
         
         st.markdown(f"""
         <div style='display:flex; justify-content:space-between; font-size:0.75rem; color:#888; margin-top:5px; border-top:1px dashed #eee; padding-top:5px;'>
@@ -196,7 +202,7 @@ def tela_biblioteca(user):
             st.markdown('<div class="filter-label">🔎 Busca Rápida</div>', unsafe_allow_html=True)
             termo = st.text_input("Busca", placeholder="Palavra-chave...", label_visibility="collapsed")
 
-        # Preparação do DataFrame temporário
+        # Preparação do DataFrame temporário para cascata
         df_temp = df_filtros.copy()
         
         # Passo 1: Filtrar DF pelo termo digitado
@@ -425,4 +431,4 @@ else:
     elif selecao == "Manutenção": tela_manutencao(user)
     elif selecao == "Admin": tela_admin(user)
     
-    st.markdown('<div class="footer">Desenvolvido com Streamlit • Gupy Frases v2.1</div>', unsafe_allow_html=True)
+    st.markdown('<div class="footer">Desenvolvido com Streamlit • Gupy Frases v2.2</div>', unsafe_allow_html=True)
