@@ -5,4 +5,3 @@ openpyxl
 extra-streamlit-components
 requests
 pillow
-st-keyup
