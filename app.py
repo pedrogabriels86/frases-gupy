@@ -172,7 +172,7 @@ def tela_biblioteca(user):
     with st.container():
         c1, c2 = st.columns([3, 1])
         with c1:
-            # BUSCA PADRÃO (Funciona sempre)
+            # BUSCA PADRÃO (ESTÁVEL)
             termo = st.text_input("🔍 Pesquisar", placeholder="Busque por Usuário, Empresa... (Enter para buscar)", label_visibility="collapsed")
         
         lista_empresas = listar_empresas_unicas()
@@ -435,4 +435,4 @@ else:
     elif selecao == "Manutenção": tela_manutencao(user)
     elif selecao == "Admin": tela_admin(user)
 
-    st.markdown("<br><div style='text-align:center; color:#CCC; font-size:0.8rem'>Gupy Frases v4.1 • Sistema Estável</div>", unsafe_allow_html=True)
+    st.markdown("<br><div style='text-align:center; color:#CCC; font-size:0.8rem'>Desenvolvido por Pedro Gabriel</div>", unsafe_allow_html=True)
